@@ -11,3 +11,18 @@ class AuditLog(db.Model):
     details = db.Column(db.Text)
     ip_address = db.Column(db.String(50))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    @staticmethod
+    def log(action, entity_type=None, entity_id=None, details=None, user_id=None):
+        from flask import request
+        ip_address = request.remote_addr if request else None
+        new_log = AuditLog(
+            action=action,
+            entity_type=entity_type,
+            entity_id=entity_id,
+            details=details,
+            user_id=user_id,
+            ip_address=ip_address
+        )
+        db.session.add(new_log)
+        db.session.flush()
