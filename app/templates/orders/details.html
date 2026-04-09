@@ -1,7 +1,7 @@
 {% extends 'layout.html' %}
 
 {% block title %}Detalle del Pedido - RestaurantPro{% endblock %}
-{% block header_title %}Comanda Activa: #{{ order.order_number }} - Mesa {{ order.table_rel.number }}{% endblock %}
+{% block header_title %}Comanda Activa: #{{ order.order_number }} - {% if order.table_rel %}Mesa {{ order.table_rel.number }}{% else %}Pedido Externo{% endif %}{% endblock %}
 
 {% block content %}
 <style>
@@ -225,7 +225,7 @@
                                 {% elif order.order_type == 'takeaway' %}
                                     <i class="bi bi-bag-check-fill"></i> {{ order.customer_name }} • {{ order.order_number }}
                                 {% else %}
-                                    Mesa {{ order.table_rel.number }} • {{ order.order_number }}
+                                    {% if order.table_rel %}Mesa {{ order.table_rel.number }}{% else %}{{ 'Delivery' if order.order_type == 'delivery' else 'Para Llevar' }}{% endif %} • {{ order.order_number }}
                                 {% endif %}
                             </span>
                         </div>

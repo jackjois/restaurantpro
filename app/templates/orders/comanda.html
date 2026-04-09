@@ -32,7 +32,7 @@
             PARA LLEVAR<br>
             <span style="font-size:16px;">{{ order.customer_name }}</span>
         {% else %}
-            MESA {{ order.table_rel.number }}
+            {% if order.table_rel %}MESA {{ order.table_rel.number }}{% else %}{{ 'DELIVERY' if order.order_type == 'delivery' else 'PARA LLEVAR' }}{% endif %}
         {% endif %}
     </div>
 

@@ -166,7 +166,7 @@
                         {% elif item.order_rel.order_type == 'takeaway' %}
                         <i class="bi bi-bag-check-fill text-warning"></i> {{ item.order_rel.customer_name|upper }}
                         {% else %}
-                        MESA {{ item.order_rel.table_rel.number }}
+                        {% if item.order_rel.table_rel %}MESA {{ item.order_rel.table_rel.number }}{% else %}EXTERNO{% endif %}
                         {% endif %}
                     </span>
                     <div class="d-flex align-items-center">

@@ -313,7 +313,7 @@
                                             {% elif ro.order_type == 'takeaway' %}
                                             Para Llevar
                                             {% else %}
-                                            Mesa {{ ro.table_rel.number }}
+                                            {% if ro.table_rel %}Mesa {{ ro.table_rel.number }}{% else %}{{ 'Delivery' if ro.order_type == 'delivery' else 'Para Llevar' }}{% endif %}
                                             {% endif %}
                                             • <i class="bi bi-clock-history"></i> {{ ro.created_at.strftime('%H:%M') }}
                                         </small>
