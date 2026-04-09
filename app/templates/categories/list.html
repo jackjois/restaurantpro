@@ -1,0 +1,136 @@
+{% extends "layout.html" %}
+{% block title %}Restaurante - Categorías{% endblock %}
+{% block header_title %}Categorías de Productos{% endblock %}
+
+{% block content %}
+<div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+    <div class="card-header bg-white p-4 border-bottom d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="mb-0 fw-bold border-start border-4 border-primary ps-3">Gestión de Categorías</h5>
+            <small class="text-muted d-block mt-1 ps-3">Administre y organice los grupos de productos</small>
+        </div>
+        <button type="button" class="btn btn-primary btn-lg fw-bold px-4 shadow-sm" style="border-radius: 12px;" data-bs-toggle="modal" data-bs-target="#createCategoryModal">
+            <i class="bi bi-plus-lg me-1"></i> Nueva Categoría
+        </button>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Categoría</th>
+                        <th>Descripción</th>
+                        <th class="text-center">Color Badge</th>
+                        <th class="text-end pe-4">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cat in categories %}
+                    <tr>
+                        <td class="ps-4 fw-bold">
+                            {{ cat.name }}
+                        </td>
+                        <td class="text-muted" style="max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            {{ cat.description or '--' }}
+                        </td>
+                        <td class="text-center">
+                            <span class="badge" style="background-color: {{ cat.color }}; border-radius: 6px; padding: 6px 12px; font-weight: 700; width: 60px;">Color</span>
+                        </td>
+                        <td class="text-end pe-4">
+                            <button type="button" class="btn btn-sm btn-outline-secondary rounded-3 px-3 me-1 fw-bold" data-bs-toggle="modal" data-bs-target="#editCategoryModal{{ cat.id }}">
+                                <i class="bi bi-pencil-square me-1"></i>Editar
+                            </button>
+                            <form action="{{ url_for('categories.delete', id=cat.id) }}" method="POST" class="d-inline" onsubmit="confirm('Esta acción es riesgosa. Solo podrá eliminarse si no hay productos asociados a esta categoría.')">
+                                <button type="submit" class="btn btn-sm btn-outline-danger rounded-3 px-3 fw-bold">
+                                    <i class="bi bi-trash-fill"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+
+                    <!-- Edit Modal -->
+                    <div class="modal fade" id="editCategoryModal{{ cat.id }}" tabindex="-1" aria-labelledby="editLabel{{ cat.id }}" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content rounded-4 border-0 shadow">
+                                <div class="modal-header border-bottom-0 pb-0">
+                                    <h5 class="modal-title fw-bold" id="editLabel{{ cat.id }}">Editar Categoría</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <form action="{{ url_for('categories.edit', id=cat.id) }}" method="POST">
+                                    <div class="modal-body">
+                                        <div class="mb-3">
+                                            <label class="form-label fw-bold">Nombre</label>
+                                            <input type="text" class="form-control form-control-lg bg-light" name="name" value="{{ cat.name }}" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label fw-bold">Descripción (Opcional)</label>
+                                            <textarea class="form-control bg-light" name="description" rows="2">{{ cat.description }}</textarea>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label fw-bold">Color Identificador</label>
+                                            <div class="d-flex align-items-center">
+                                                <input type="color" class="form-control form-control-color me-3" name="color" value="{{ cat.color }}" title="Elige un color">
+                                                <small class="text-muted">Aparecerá como Badge en la Carta Digital</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer border-top-0 pt-0">
+                                        <button type="button" class="btn btn-light rounded-3 fw-bold px-4" data-bs-dismiss="modal">Cancelar</button>
+                                        <button type="submit" class="btn btn-primary rounded-3 fw-bold px-4">Guardar Cambios</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center py-5 text-muted">
+                            <div class="bg-light rounded-circle d-inline-flex justify-content-center align-items-center mb-3" style="width: 80px; height: 80px;">
+                                <i class="bi bi-tags fs-1 text-secondary"></i>
+                            </div>
+                            <h5 class="fw-bold text-dark">No hay categorías</h5>
+                            <p>Comienza creando tu primera categoría de productos.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Create Modal -->
+<div class="modal fade" id="createCategoryModal" tabindex="-1" aria-labelledby="createLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h5 class="modal-title fw-bold" id="createLabel"><i class="bi bi-tag-fill me-2 text-primary"></i>Nueva Categoría</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('categories.create') }}" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Nombre Categoría</label>
+                        <input type="text" class="form-control form-control-lg bg-light border-0 shadow-sm" name="name" placeholder="Ej: Bebidas, Postres, Entradas..." required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Descripción (Opcional)</label>
+                        <textarea class="form-control bg-light border-0 shadow-sm" name="description" rows="2" placeholder="Detalles de la categoría..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Color Identificador</label>
+                        <div class="d-flex align-items-center">
+                            <input type="color" class="form-control form-control-color border-0 shadow-sm me-3" name="color" value="#0d6efd">
+                            <small class="text-muted">Aparecerá en el Ticket y Menú</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0 pt-0">
+                    <button type="button" class="btn btn-light rounded-3 fw-bold px-4" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary rounded-3 fw-bold px-4 shadow-sm">Crear Categoría</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
