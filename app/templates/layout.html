@@ -19,7 +19,7 @@
         <a class="navbar-brand fw-bold d-flex align-items-center" href="{% if current_user.role == 'admin' %}{{ url_for('dashboard.index') }}{% elif current_user.role == 'chef' %}{{ url_for('orders.kitchen') }}{% elif current_user.role == 'cashier' %}{{ url_for('cashier.pos') }}{% else %}{{ url_for('tables.monitor') }}{% endif %}">
             
             {% if restaurant and restaurant.logo_url %}
-                <img src="{{ url_for('static', filename=restaurant.logo_url) }}" alt="Logo" style="height: 30px; margin-right: 8px; border-radius: 4px; background: white; padding: 2px; object-fit: contain;">
+                <img src="{{ restaurant.logo_url | resolve_url('') }}" alt="Logo" style="height: 30px; margin-right: 8px; border-radius: 4px; background: white; padding: 2px; object-fit: contain;">
             {% else %}
                 <i class="bi bi-shop me-2"></i>
             {% endif %}
@@ -81,7 +81,7 @@
                     <a href="{% if current_user.role == 'admin' %}{{ url_for('dashboard.index') }}{% elif current_user.role == 'chef' %}{{ url_for('orders.kitchen') }}{% elif current_user.role == 'cashier' %}{{ url_for('cashier.pos') }}{% else %}{{ url_for('tables.monitor') }}{% endif %}" class="d-none d-md-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none">
                         
                         {% if restaurant and restaurant.logo_url %}
-                            <img src="{{ url_for('static', filename=restaurant.logo_url) }}" alt="Logo" style="height: 35px; margin-right: 12px; border-radius: 5px; background: white; padding: 2px; object-fit: contain;">
+                            <img src="{{ restaurant.logo_url | resolve_url('') }}" alt="Logo" style="height: 35px; margin-right: 12px; border-radius: 5px; background: white; padding: 2px; object-fit: contain;">
                         {% else %}
                             <i class="bi bi-shop fs-4 me-2"></i>
                         {% endif %}

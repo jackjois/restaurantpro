@@ -151,7 +151,7 @@
                             <div class="price-pill">S/ {{ "%.2f"|format(p.price) }}</div>
                             <div class="product-img-wrapper d-flex align-items-center justify-content-center">
                                 {% if p.image_url %}
-                                    <img src="{{ url_for('static', filename='uploads/products/' ~ p.image_url) }}" alt="{{ p.name }}">
+                                    <img src="{{ p.image_url | resolve_url }}" alt="{{ p.name }}">
                                 {% else %}
                                     <div class="text-center">
                                         <i class="bi bi-egg-fried text-primary opacity-25" style="font-size:3rem;"></i>
@@ -183,7 +183,7 @@
                                     <div class="price-pill">S/ {{ "%.2f"|format(p.price) }}</div>
                                     <div class="product-img-wrapper d-flex align-items-center justify-content-center">
                                         {% if p.image_url %}
-                                            <img src="{{ url_for('static', filename='uploads/products/' ~ p.image_url) }}" alt="{{ p.name }}">
+                                            <img src="{{ p.image_url | resolve_url }}" alt="{{ p.name }}">
                                         {% else %}
                                             <div class="text-center">
                                                 <i class="bi bi-egg-fried text-primary opacity-25" style="font-size:3rem;"></i>
@@ -338,7 +338,7 @@
             <div class="modal-header border-0 bg-light pb-3">
                 <div class="d-flex align-items-center">
                     {% if p.image_url %}
-                    <img src="{{ url_for('static', filename='uploads/products/' ~ p.image_url) }}" style="width:40px; height:40px; border-radius:10px; object-fit:cover;" class="me-3 shadow-sm">
+                    <img src="{{ p.image_url | resolve_url }}" style="width:40px; height:40px; border-radius:10px; object-fit:cover;" class="me-3 shadow-sm">
                     {% endif %}
                     <h5 class="modal-title fw-bold text-dark">{{ p.name }}</h5>
                 </div>

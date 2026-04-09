@@ -146,7 +146,7 @@
                 nombre: "{{ p.name|replace('\"', '\\\"') }}",
                 descripcion: "{{ (p.description or '')|replace('\"', '\\\"')|replace('\n', ' ') }}",
                 precio: {{ p.price }},
-                imagen: {% if p.image_url %}"{{ url_for('static', filename='uploads/products/' ~ p.image_url) }}"{% else %}null{% endif %}
+                imagen: {% if p.image_url %}"{{ p.image_url | resolve_url }}"{% else %}null{% endif %}
             }{% if not loop.last %},{% endif %}
             {% endfor %}
         ];

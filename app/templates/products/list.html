@@ -53,7 +53,7 @@
                 <td>
                     <div class="d-flex align-items-center">
                         {% if p.image_url %}
-                            <img src="{{ url_for('static', filename='uploads/products/' ~ p.image_url) }}" alt="{{ p.name }}" class="rounded shadow-sm me-3" style="width: 55px; height: 55px; object-fit: cover;">
+                            <img src="{{ p.image_url | resolve_url }}" alt="{{ p.name }}" class="rounded shadow-sm me-3" style="width: 55px; height: 55px; object-fit: cover;">
                         {% else %}
                             <div class="rounded shadow-sm me-3 d-flex align-items-center justify-content-center" style="width: 55px; height: 55px; background: #f4f7fe; color: #a3aed1;">
                                 <i class="bi bi-camera fs-4"></i>

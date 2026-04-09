@@ -19,7 +19,7 @@
                             <div class="d-flex align-items-center gap-3">
                                 {% if setting.logo_url %}
                                     <div class="bg-light p-2 rounded border">
-                                        <img src="{{ url_for('static', filename=setting.logo_url) }}" alt="Logo" style="max-height: 70px; max-width: 150px; object-fit: contain;">
+                                        <img src="{{ setting.logo_url | resolve_url('') }}" alt="Logo" style="max-height: 70px; max-width: 150px; object-fit: contain;">
                                     </div>
                                 {% else %}
                                     <div class="bg-light border text-muted d-flex align-items-center justify-content-center rounded" style="width: 70px; height: 70px;">

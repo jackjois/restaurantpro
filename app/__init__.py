@@ -83,4 +83,12 @@ def create_app(config_class=Config):
     def service_worker():
         return send_from_directory(os.path.join(app.root_path, 'static'), 'sw.js')
     
+    @app.template_filter('resolve_url')
+    def resolve_url(path, folder='uploads/products/'):
+        if not path:
+            return ""
+        if path.startswith('http://') or path.startswith('https://'):
+            return path
+        return url_for('static', filename=folder + path)
+
     return app
