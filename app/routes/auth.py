@@ -14,7 +14,16 @@ def load_user(user_id):
 @auth_bp.route('/', methods=['GET', 'POST'])
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
-    # Eliminamos el bloqueo automático para permitir "Cambiar de Usuario" si se accede a /login directamente
+    # Si el usuario ya está autenticado y accede al login por GET, redirigir a su panel
+    if request.method == 'GET' and current_user.is_authenticated:
+        if current_user.role == 'admin':
+            return redirect(url_for('dashboard.index'))
+        elif current_user.role == 'cashier':
+            return redirect(url_for('cashier.pos'))
+        elif current_user.role == 'chef':
+            return redirect(url_for('orders.kitchen'))
+        else:
+            return redirect(url_for('tables.monitor'))
     
     if request.method == 'POST':
         username = request.form.get('username')
@@ -23,7 +32,18 @@ def login():
         user = User.query.filter_by(username=username).first()
         
         if user and bcrypt.check_password_hash(user.password_hash, password):
-            login_user(user)
+            # Verificar que el usuario esté activo
+            if not user.is_active:
+                flash('Tu cuenta ha sido desactivada. Contacta al administrador.', 'danger')
+                return render_template('login.html')
+            
+            # Si hay otro usuario logueado, cerrar su sesión primero
+            if current_user.is_authenticated:
+                logout_user()
+            
+            # remember=True es CRÍTICO para Vercel serverless:
+            # Sin él, la cookie de sesión se pierde entre cold starts
+            login_user(user, remember=True)
             
             next_page = request.args.get('next')
             if next_page:
@@ -47,6 +67,14 @@ def login():
 @login_required
 def logout():
     logout_user()
+    return redirect(url_for('auth.login'))
+
+@auth_bp.route('/switch')
+@login_required
+def switch_user():
+    """Cierra la sesión actual y redirige al login para cambiar de usuario."""
+    logout_user()
+    flash('Sesión cerrada. Ingresa con otro usuario.', 'info')
     return redirect(url_for('auth.login'))
 
 @auth_bp.route('/register', methods=['GET', 'POST'])

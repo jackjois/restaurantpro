@@ -9,6 +9,18 @@ class Config:
     # Clave secreta para proteger formularios y sesiones
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-key-por-defecto'
     
+    # Configuración de sesiones para Vercel Serverless
+    # remember=True en login_user() usa cookies persistentes que sobreviven cold starts
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    REMEMBER_COOKIE_HTTPONLY = True
+    REMEMBER_COOKIE_SAMESITE = 'Lax'
+    REMEMBER_COOKIE_DURATION = 2592000  # 30 días en segundos
+    
+    # En producción (Vercel/HTTPS), las cookies deben ser Secure
+    SESSION_COOKIE_SECURE = os.environ.get('VERCEL', False) != False
+    REMEMBER_COOKIE_SECURE = os.environ.get('VERCEL', False) != False
+    
     # Configuración de la base de datos (PostgreSQL en Supabase vía pg8000)
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
     if SQLALCHEMY_DATABASE_URI:
