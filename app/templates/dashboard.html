@@ -1,6 +1,6 @@
 {% extends 'layout.html' %}
 
-{% block title %}Dashboard - RestaurantPro{% endblock %}
+{% block title %}Panel - RestaurantPro{% endblock %}
 {% block header_title %}Centro de Control{% endblock %}
 
 {% block content %}
@@ -313,7 +313,8 @@
                                             {% elif ro.order_type == 'takeaway' %}
                                             Para Llevar
                                             {% else %}
-                                            {% if ro.table_rel %}Mesa {{ ro.table_rel.number }}{% else %}{{ 'Delivery' if ro.order_type == 'delivery' else 'Para Llevar' }}{% endif %}
+                                            {% if ro.table_rel %}Mesa {{ ro.table_rel.number }}{% else %}{{ 'Delivery'
+                                            if ro.order_type == 'delivery' else 'Para Llevar' }}{% endif %}
                                             {% endif %}
                                             • <i class="bi bi-clock-history"></i> {{ ro.created_at.strftime('%H:%M') }}
                                         </small>
