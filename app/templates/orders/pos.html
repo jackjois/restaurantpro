@@ -1,0 +1,361 @@
+{% extends 'layout.html' %}
+
+{% block title %}Terminal POS - Mesa {{ table.number }}{% endblock %}
+{% block header_title %}Nueva Comanda - Mesa {{ table.number }}{% endblock %}
+
+{% block content %}
+<style>
+    .pos-container {
+        display: flex;
+        gap: 20px;
+        height: calc(100vh - 120px);
+        min-height: 600px;
+    }
+    
+    .pos-catalog {
+        flex: 1;
+        background: #fff;
+        border-radius: 20px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.03);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .pos-cart {
+        width: 380px;
+        background: #fff;
+        border-radius: 20px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.03);
+        display: flex;
+        flex-direction: column;
+        border: 2px solid #f4f7fe;
+    }
+
+    /* Catálogo Scroll */
+    .catalog-scroll {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+        background: #f8f9fc;
+    }
+    
+    .catalog-scroll::-webkit-scrollbar { width: 6px; }
+    .catalog-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+    /* Cart Scroll */
+    .cart-scroll {
+        flex: 1;
+        overflow-y: auto;
+        padding: 15px;
+    }
+    .cart-scroll::-webkit-scrollbar { width: 4px; }
+    .cart-scroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+
+    /* Tarjeta Producto POS */
+    .pos-product-card {
+        background: #fff;
+        border-radius: 16px;
+        padding: 15px;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid #f1f5f9;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+    .pos-product-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 20px rgba(67, 24, 255, 0.08);
+        border-color: #4318ff;
+    }
+    .pos-product-card:active {
+        transform: scale(0.96);
+    }
+    .pos-img-wrapper {
+        width: 100%;
+        height: 120px;
+        border-radius: 12px;
+        background: #f8f9fc;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+    }
+    .pos-img-wrapper img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    /* Cart Item */
+    .cart-item {
+        background: #f8f9fc;
+        border-radius: 12px;
+        padding: 12px;
+        margin-bottom: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .qty-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        border: none;
+        background: #e2e8f0;
+        color: #475569;
+        font-weight: bold;
+        transition: 0.2s;
+    }
+    .qty-btn:hover { background: #cbd5e1; }
+    .qty-btn.plus { background: #1b254b; color: white; }
+    .qty-btn.plus:hover { background: #0f172a; }
+
+    .category-pill {
+        border-radius: 20px;
+        padding: 8px 16px;
+        font-weight: 700;
+        font-size: 0.85rem;
+        cursor: pointer;
+        border: 1px solid #e2e8f0;
+        background: #fff;
+        color: #64748b;
+        white-space: nowrap;
+        transition: 0.2s;
+    }
+    .category-pill.active {
+        background: #1b254b;
+        color: #fff;
+        border-color: #1b254b;
+    }
+    
+    @media (max-width: 991px) {
+        .pos-container { flex-direction: column; height: auto; }
+        .pos-cart { width: 100%; min-height: 400px; }
+    }
+</style>
+
+<div class="pos-container">
+    <!-- PANEL IZQUIERDO: CATÁLOGO -->
+    <div class="pos-catalog">
+        <div class="p-4 border-bottom">
+            <div class="d-flex gap-3 mb-3">
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
+                    <input type="text" id="posSearch" class="form-control bg-light border-0 py-2 fw-medium" placeholder="Buscar plato o bebida...">
+                </div>
+            </div>
+            <div class="d-flex gap-2 overflow-auto hide-scrollbar pb-1" id="categoryFilters">
+                <div class="category-pill active" onclick="filtrar('all')">⭐ Todo</div>
+                {% for c in categories %}
+                <div class="category-pill cat-btn" id="cat_{{ c.id }}" onclick="filtrar('cat_{{ c.id }}')">{{ c.name }}</div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <div class="catalog-scroll">
+            <div class="row g-3" id="posGrid">
+                {% for p in products %}
+                <div class="col-6 col-md-4 col-lg-3 product-item" data-name="{{ p.name | lower }}" data-cat="cat_{{ p.category_id }}">
+                    <div class="pos-product-card" onclick="agregarAlCarrito({{ p.id }}, '{{ p.name | replace('\'', '\\\'') }}', {{ p.price }})">
+                        <div class="pos-img-wrapper">
+                            {% if p.image_url %}
+                                <img src="{{ p.image_url | resolve_url }}" alt="{{ p.name }}">
+                            {% else %}
+                                <i class="bi bi-camera text-muted fs-1"></i>
+                            {% endif %}
+                        </div>
+                        <h6 class="fw-bold text-dark mb-1 lh-sm" style="font-size:0.9rem;">{{ p.name }}</h6>
+                        <div class="mt-auto pt-2 d-flex justify-content-between align-items-center">
+                            <span class="text-primary fw-extrabold">S/ {{ "%.2f"|format(p.price) }}</span>
+                            <div class="bg-light rounded-circle d-flex align-items-center justify-content-center" style="width:28px; height:28px;">
+                                <i class="bi bi-plus text-primary fw-bold"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div id="noResults" class="text-center py-5 d-none">
+                <i class="bi bi-search text-muted" style="font-size: 3rem;"></i>
+                <h5 class="fw-bold mt-3 text-dark">Sin resultados</h5>
+                <p class="text-muted">Intenta buscar con otra palabra.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- PANEL DERECHO: LA COMANDA -->
+    <div class="pos-cart">
+        <div class="p-3 border-bottom bg-dark text-white text-center" style="border-radius: 20px 20px 0 0;">
+            <span class="badge bg-danger mb-2">Comanda Mesa {{ table.number }}</span>
+            <h5 class="fw-bold mb-0">Nuevo Pedido</h5>
+        </div>
+        
+        <div class="cart-scroll" id="cartContainer">
+            <!-- Items del carrito JS -->
+            <div class="text-center py-5 text-muted opacity-50" id="emptyCartMsg">
+                <i class="bi bi-cart-x" style="font-size: 3rem;"></i>
+                <p class="mt-2 fw-medium">La comanda está vacía.</p>
+                <p class="small">Toca un producto para agregarlo.</p>
+            </div>
+        </div>
+        
+        <div class="p-4 border-top" style="background:#f8f9fc; border-radius: 0 0 20px 20px;">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <span class="text-muted fw-bold">Total Parcial</span>
+                <span class="fs-4 fw-extrabold text-dark" id="cartTotal">S/ 0.00</span>
+            </div>
+            
+            <!-- El botón de Enviar ejecuta la transacción real -->
+            <button id="btnEnviarCocina" class="btn w-100 py-3 fw-bold text-white shadow-sm d-flex justify-content-center align-items-center gap-2" style="border-radius: 14px; background: #ee5d50; font-size: 1.1rem; transition: 0.2s;" onclick="enviarOrden()" disabled>
+                <i class="bi bi-fire"></i> ENVIAR A COCINA
+            </button>
+            <a href="{{ url_for('tables.monitor') }}" class="btn btn-light w-100 py-2 mt-2 fw-bold text-muted" style="border-radius: 10px;">Cancelar</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    let carrito = [];
+
+    // --- LÓGICA DE FILTROS ---
+    function filtrar(categoriaId) {
+        document.querySelectorAll('.category-pill').forEach(el => el.classList.remove('active'));
+        if(categoriaId === 'all') {
+            document.querySelector('.category-pill:first-child').classList.add('active');
+        } else {
+            document.getElementById(categoriaId).classList.add('active');
+        }
+        aplicarFiltros();
+    }
+
+    document.getElementById('posSearch').addEventListener('input', aplicarFiltros);
+
+    function aplicarFiltros() {
+        const texto = document.getElementById('posSearch').value.toLowerCase().trim();
+        const categoriaActiva = document.querySelector('.category-pill.active').getAttribute('onclick').match(/'([^']+)'/)[1];
+        
+        let visibles = 0;
+        document.querySelectorAll('.product-item').forEach(item => {
+            const nombre = item.getAttribute('data-name');
+            const cat = item.getAttribute('data-cat');
+            
+            const matchTexto = nombre.includes(texto);
+            const matchCat = (categoriaActiva === 'all' || cat === categoriaActiva);
+            
+            if(matchTexto && matchCat) {
+                item.style.display = '';
+                visibles++;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+        
+        document.getElementById('noResults').classList.toggle('d-none', visibles > 0);
+    }
+
+    // --- LÓGICA DEL CARRITO (PERSISTENCIA DIFERIDA) ---
+    function agregarAlCarrito(id, nombre, precio) {
+        const existe = carrito.find(i => i.id === id);
+        if(existe) {
+            existe.cantidad++;
+        } else {
+            carrito.push({ id, nombre, precio, cantidad: 1 });
+        }
+        renderizarCarrito();
+    }
+
+    function cambiarCant(index, delta) {
+        carrito[index].cantidad += delta;
+        if(carrito[index].cantidad <= 0) {
+            carrito.splice(index, 1);
+        }
+        renderizarCarrito();
+    }
+
+    function renderizarCarrito() {
+        const container = document.getElementById('cartContainer');
+        const emptyMsg = document.getElementById('emptyCartMsg');
+        const totalEl = document.getElementById('cartTotal');
+        const btnEnviar = document.getElementById('btnEnviarCocina');
+        
+        if(carrito.length === 0) {
+            container.innerHTML = '';
+            container.appendChild(emptyMsg);
+            emptyMsg.classList.remove('d-none');
+            totalEl.innerText = "S/ 0.00";
+            btnEnviar.disabled = true;
+            return;
+        }
+        
+        emptyMsg.classList.add('d-none');
+        container.innerHTML = '';
+        
+        let total = 0;
+        
+        carrito.forEach((item, index) => {
+            const subtotal = item.precio * item.cantidad;
+            total += subtotal;
+            
+            const html = `
+            <div class="cart-item shadow-sm">
+                <div class="d-flex justify-content-between align-items-start">
+                    <span class="fw-bold text-dark lh-sm" style="font-size:0.95rem;">${item.nombre}</span>
+                    <span class="text-danger fw-bold">S/ ${subtotal.toFixed(2)}</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mt-2">
+                    <span class="text-muted small">S/ ${item.precio.toFixed(2)} c/u</span>
+                    <div class="d-flex align-items-center gap-2">
+                        <button class="qty-btn" onclick="cambiarCant(${index}, -1)"><i class="bi bi-dash"></i></button>
+                        <span class="fw-bold" style="width: 20px; text-align: center;">${item.cantidad}</span>
+                        <button class="qty-btn plus" onclick="cambiarCant(${index}, 1)"><i class="bi bi-plus"></i></button>
+                    </div>
+                </div>
+            </div>`;
+            container.innerHTML += html;
+        });
+        
+        totalEl.innerText = `S/ ${total.toFixed(2)}`;
+        btnEnviar.disabled = false;
+        
+        // Scroll suave al final si agregamos muchos
+        container.scrollTop = container.scrollHeight;
+    }
+
+    // --- TRANSACCIÓN AL BACKEND ---
+    function enviarOrden() {
+        if(carrito.length === 0) return;
+        
+        const btn = document.getElementById('btnEnviarCocina');
+        btn.disabled = true;
+        btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> PROCESANDO...`;
+        
+        fetch("{{ url_for('orders.submit_pos', table_id=table.id) }}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ cart: carrito })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.success) {
+                // Éxito: Ocupamos la mesa real y redireccionamos a detalles
+                window.location.href = "/orders/" + data.order_id;
+            } else {
+                alert("Error: " + data.error);
+                btn.disabled = false;
+                btn.innerHTML = `<i class="bi bi-fire"></i> ENVIAR A COCINA`;
+            }
+        })
+        .catch(err => {
+            alert("Error de conexión al enviar la comanda.");
+            btn.disabled = false;
+            btn.innerHTML = `<i class="bi bi-fire"></i> ENVIAR A COCINA`;
+        });
+    }
+</script>
+{% endblock %}

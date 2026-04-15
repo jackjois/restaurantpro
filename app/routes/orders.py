@@ -35,6 +35,77 @@ def index():
     orders = Order.query.order_by(Order.created_at.desc()).all()
     return render_template('orders/list.html', orders=orders)
 
+@orders_bp.route('/pos/<int:table_id>')
+@login_required
+@role_required('admin', 'cashier', 'waiter')
+def pos(table_id):
+    table = Table.query.get_or_404(table_id)
+    if table.status != 'free':
+        flash('Esta mesa ya está ocupada o no está disponible.', 'warning')
+        return redirect(url_for('tables.monitor'))
+    
+    products = Product.query.filter_by(is_available=True).all()
+    categories = Category.query.all()
+    return render_template('orders/pos.html', table=table, products=products, categories=categories)
+
+@orders_bp.route('/submit_pos/<int:table_id>', methods=['POST'])
+@login_required
+@role_required('admin', 'cashier', 'waiter')
+def submit_pos(table_id):
+    table = Table.query.get_or_404(table_id)
+    if table.status != 'free':
+        return {'success': False, 'error': 'La mesa fue ocupada por otro usuario.'}, 400
+        
+    data = request.get_json()
+    cart = data.get('cart', [])
+    
+    if not cart:
+        return {'success': False, 'error': 'El carrito está vacío.'}, 400
+
+    try:
+        new_order = Order(
+            table_id=table.id,
+            user_id=current_user.id,
+            order_number=generate_order_number(),
+            status='pending',
+            total_amount=0
+        )
+        table.status = 'occupied'
+        db.session.add(new_order)
+        db.session.flush()
+
+        total = 0
+        for item in cart:
+            product = Product.query.get(item['id'])
+            if product:
+                qty = int(item['cantidad'])
+                subtotal = float(product.price) * qty
+                total += subtotal
+                
+                order_item = OrderItem(
+                    order_id=new_order.id,
+                    product_id=product.id,
+                    quantity=qty,
+                    unit_price=product.price,
+                    subtotal=subtotal,
+                    status='pending'
+                )
+                db.session.add(order_item)
+                
+                if product.track_stock:
+                    product.stock -= qty
+
+        new_order.total_amount = total
+        db.session.commit()
+
+        flash(f'Comanda generada e iniciada (Mesa {table.number}).', 'success')
+        return {'success': True, 'order_id': new_order.id}
+        
+    except Exception as e:
+        db.session.rollback()
+        return {'success': False, 'error': str(e)}, 500
+
+
 @orders_bp.route('/create/<int:table_id>', methods=['POST'])
 @login_required
 @role_required('admin', 'cashier', 'waiter')

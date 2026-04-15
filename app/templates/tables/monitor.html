@@ -305,9 +305,7 @@
                 </div>
 
                 {% if t.status == 'free' %}
-                <form action="{{ url_for('orders.create', table_id=t.id) }}" method="POST" class="m-0">
-                    <button type="submit" class="btn btn-primary-custom w-100 btn-table">Abrir Pedido</button>
-                </form>
+                <a href="{{ url_for('orders.pos', table_id=t.id) }}" class="btn btn-primary-custom w-100 btn-table">Abrir Pedido</a>
                 {% elif t.status == 'occupied' %}
                 <a href="{{ url_for('orders.index') }}" class="btn btn-outline-danger w-100 btn-table"
                     style="border-width: 2px;">Ver Pedido</a>
