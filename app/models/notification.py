@@ -35,11 +35,13 @@ class Notification(db.Model):
         
     @classmethod
     def create(cls, message, type='system', user_id=None):
+        """Crea una notificación y la agrega a la sesión (sin commit).
+        El caller debe hacer db.session.commit() cuando la transacción esté completa."""
         n = cls(message=message, type=type, user_id=user_id)
         db.session.add(n)
-        db.session.commit()
+        db.session.flush()  # Genera el ID sin cerrar la transacción
         return n
         
     def mark_as_read(self):
         self.is_read = True
-        db.session.commit()
+        db.session.flush()

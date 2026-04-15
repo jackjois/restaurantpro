@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, jsonify, session
+from flask import Blueprint, render_template, request, jsonify
 from app.models.table import Table
 from app.models.product import Product
 from app.models.category import Category
@@ -8,6 +8,9 @@ from app import db, csrf
 import random
 import string
 import time
+
+# Rate limiting en memoria (se resetea con cold starts, pero funciona durante instancias calientes)
+_rate_limit_store = {}
 
 menu_bp = Blueprint('menu', __name__, url_prefix='/menu')
 
@@ -25,11 +28,14 @@ def view_menu(qr_code):
 @csrf.exempt  # API JSON pública, no usa sesiones de Flask
 @menu_bp.route('/<qr_code>/order', methods=['POST'])
 def place_order(qr_code):
-    # Rate limiting básico por IP (máx 5 pedidos por minuto)
-    client_ip = request.remote_addr or 'unknown'
+    # Rate limiting por IP real (máx 5 pedidos por minuto)
+    # Usar X-Forwarded-For para obtener la IP real en Vercel/proxies
+    client_ip = request.headers.get('X-Forwarded-For', request.remote_addr) or 'unknown'
+    if ',' in client_ip:
+        client_ip = client_ip.split(',')[0].strip()
     rate_key = f'menu_rate_{client_ip}'
     now = time.time()
-    recent_orders = session.get(rate_key, [])
+    recent_orders = _rate_limit_store.get(rate_key, [])
     recent_orders = [t for t in recent_orders if now - t < 60]  # Último minuto
     if len(recent_orders) >= 5:
         return jsonify({'error': 'Demasiados pedidos. Espera un momento.'}), 429
@@ -116,6 +122,11 @@ def place_order(qr_code):
     
     # Registrar para rate limiting
     recent_orders.append(now)
-    session[rate_key] = recent_orders
+    _rate_limit_store[rate_key] = recent_orders
+    
+    # Limpiar entradas viejas del store cada 100 pedidos para evitar memory leak
+    if len(_rate_limit_store) > 100:
+        cutoff = now - 120
+        _rate_limit_store.clear()
 
     return jsonify({'success': True, 'message': 'Pedido enviado a cocina'})

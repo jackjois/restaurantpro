@@ -15,7 +15,14 @@ class AuditLog(db.Model):
     @staticmethod
     def log(action, entity_type=None, entity_id=None, details=None, user_id=None):
         from flask import request
-        ip_address = request.remote_addr if request else None
+        # En Vercel serverless, remote_addr es el proxy de AWS.
+        # X-Forwarded-For contiene la IP real del cliente.
+        ip_address = None
+        if request:
+            ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
+            # X-Forwarded-For puede tener múltiples IPs: tomar la primera (cliente real)
+            if ip_address and ',' in ip_address:
+                ip_address = ip_address.split(',')[0].strip()
         new_log = AuditLog(
             action=action,
             entity_type=entity_type,

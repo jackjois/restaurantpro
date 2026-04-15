@@ -22,7 +22,7 @@ def allowed_file(filename):
 @role_required('admin')
 def index():
     # Obtenemos todos los productos junto con su categoría
-    products = Product.query.join(Category).order_by(Category.name, Product.name).all()
+    products = Product.query.outerjoin(Category).order_by(Category.name.asc().nullslast(), Product.name).all()
     categories = Category.query.all()
     return render_template('products/list.html', products=products, categories=categories)
 

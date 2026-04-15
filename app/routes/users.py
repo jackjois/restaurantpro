@@ -50,8 +50,24 @@ def create():
 def edit(id):
     user = User.query.get_or_404(id)
     
-    user.username = request.form.get('username')
-    user.email = request.form.get('email')
+    new_username = request.form.get('username')
+    new_email = request.form.get('email')
+    
+    # Validar duplicados de username y email con otros usuarios
+    if new_username != user.username:
+        existing = User.query.filter(User.username == new_username, User.id != id).first()
+        if existing:
+            flash(f'El nombre de usuario "{new_username}" ya está en uso por otro usuario.', 'danger')
+            return redirect(url_for('users.index'))
+    
+    if new_email and new_email != user.email:
+        existing = User.query.filter(User.email == new_email, User.id != id).first()
+        if existing:
+            flash(f'El correo "{new_email}" ya está en uso por otro usuario.', 'danger')
+            return redirect(url_for('users.index'))
+    
+    user.username = new_username
+    user.email = new_email
     user.full_name = request.form.get('full_name')
     user.role = request.form.get('role')
     user.is_active = 'is_active' in request.form

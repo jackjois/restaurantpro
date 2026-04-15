@@ -37,6 +37,7 @@ def index():
 
 @orders_bp.route('/create/<int:table_id>', methods=['POST'])
 @login_required
+@role_required('admin', 'cashier', 'waiter')
 def create(table_id):
     table = Table.query.get_or_404(table_id)
     if table.status != 'free':
@@ -59,6 +60,7 @@ def create(table_id):
 
 @orders_bp.route('/create_external', methods=['POST'])
 @login_required
+@role_required('admin', 'cashier', 'waiter')
 def create_external():
     order_type = request.form.get('order_type', 'takeaway')
     customer_name = request.form.get('customer_name', '')
@@ -102,6 +104,7 @@ def details(id):
 
 @orders_bp.route('/<int:id>/add_item', methods=['POST'])
 @login_required
+@role_required('admin', 'cashier', 'waiter')
 def add_item(id):
     order = Order.query.get_or_404(id)
     
@@ -134,6 +137,7 @@ def add_item(id):
 
 @orders_bp.route('/remove_item/<int:item_id>', methods=['POST'])
 @login_required
+@role_required('admin', 'cashier', 'waiter')
 def remove_item(item_id):
     item = OrderItem.query.get_or_404(item_id)
     order = Order.query.get(item.order_id)
@@ -183,12 +187,10 @@ def update_item_status(item_id):
         table_num = parent_order.table_rel.number if parent_order and parent_order.table_rel else 'N/A'
         dish_name = item.product.name
         
-        # NUEVO: Guardamos con user_id=None para que sea GLOBAL
+        # Guardamos con user_id=None para que sea GLOBAL
         mensaje = f"¡El plato {dish_name} de la Mesa {table_num} está listo!"
         Notification.create(type='system', message=mensaje, user_id=None)
-        
-
-    
+        db.session.commit()
 
     return redirect(url_for('orders.kitchen'))
 
@@ -236,10 +238,11 @@ def comanda(order_id):
     order = Order.query.get_or_404(order_id)
     return render_template('orders/comanda.html', order=order)
 
-@orders_bp.route('/notifications/read')
+@orders_bp.route('/notifications/read', methods=['POST'])
 @login_required
 def read_notifications():
     unread = Notification.get_by_user(current_user.id, unread_only=True, limit=50)
     for n in unread:
         n.mark_as_read()
+    db.session.commit()
     return redirect(request.referrer or url_for('tables.monitor'))

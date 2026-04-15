@@ -105,10 +105,6 @@ h1, h2, h3, h4, h5, h6 {
     overflow: visible !important;
 }
 
-.dropdown-menu {
-    z-index: 2000 !important;
-}
-
 /* Fix: Asegurar que la fila con el menú abierto esté sobre las demás */
 .table-premium tbody tr {
     position: relative;
