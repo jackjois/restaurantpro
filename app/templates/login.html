@@ -75,6 +75,7 @@
                 {% endwith %}
 
                 <form method="POST" action="{{ url_for('auth.login') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <div class="mb-3">
                         <label for="username" class="form-label fw-bold" style="color: #1b254b; font-size: 0.9rem;">Usuario</label>
                         <input type="text" class="form-control custom-input" id="username" name="username" placeholder="Tu usuario admin" required autofocus>

@@ -33,7 +33,10 @@ class Config:
             
     import ssl
     ssl_ctx = ssl.create_default_context()
-    # SSL con verificación completa (Supabase usa certificados Let's Encrypt válidos)
+    # SSL cifrado + verificación de certificado, pero sin check de hostname
+    # El pooler de Supabase (pooler.supabase.com) puede presentar un cert
+    # con CN/SAN que no coincide exactamente con el hostname de conexión
+    ssl_ctx.check_hostname = False
 
     SQLALCHEMY_ENGINE_OPTIONS = {
         "pool_size": 1,
