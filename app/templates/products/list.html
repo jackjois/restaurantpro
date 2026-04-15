@@ -35,6 +35,24 @@
     </button>
 </div>
 
+<!-- Barra de Filtros -->
+<div class="row mb-4 g-3">
+    <div class="col-md-8">
+        <div class="input-group shadow-sm" style="border-radius: 14px; overflow: hidden;">
+            <span class="input-group-text bg-white border-0 text-muted px-4"><i class="bi bi-search"></i></span>
+            <input type="text" id="searchInput" class="form-control border-0 py-3" placeholder="Buscar por nombre o descripción..." style="box-shadow: none;">
+        </div>
+    </div>
+    <div class="col-md-4">
+        <select id="categoryFilter" class="form-select shadow-sm border-0 py-3" style="border-radius: 14px; color: #2b3674; font-weight: 600;">
+            <option value="all">Todas las Categorías</option>
+            {% for c in categories %}
+                <option value="{{ c.id }}">{{ c.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+</div>
+
 <div class="table-responsive hide-scrollbar" style="overflow-x: auto;">
     <table class="table-premium">
         <thead>
@@ -47,9 +65,9 @@
                 <th class="text-end">Opciones</th>
             </tr>
         </thead>
-        <tbody>
+        <tbody id="productTableBody">
             {% for p in products %}
-            <tr>
+            <tr class="product-row" data-name="{{ p.name | lower }} {{ p.description | lower }}" data-category="{{ p.category_id }}">
                 <td>
                     <div class="d-flex align-items-center">
                         {% if p.image_url %}
@@ -253,4 +271,34 @@
     </div>
 </div>
 {% endfor %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const categoryFilter = document.getElementById('categoryFilter');
+    const rows = document.querySelectorAll('.product-row');
+
+    function filterProducts() {
+        const searchTerm = searchInput.value.toLowerCase().trim();
+        const selectedCategory = categoryFilter.value;
+
+        rows.forEach(row => {
+            const productNameDesc = row.getAttribute('data-name');
+            const productCategory = row.getAttribute('data-category');
+            
+            const matchesSearch = productNameDesc.includes(searchTerm);
+            const matchesCategory = selectedCategory === 'all' || productCategory === selectedCategory;
+
+            if (matchesSearch && matchesCategory) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+
+    searchInput.addEventListener('input', filterProducts);
+    categoryFilter.addEventListener('change', filterProducts);
+});
+</script>
 {% endblock %}

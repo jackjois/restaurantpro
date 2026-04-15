@@ -1,0 +1,78 @@
+MENU
+
+ESPECIALES AL CILINDRO
+CHANCHO AL CILINDRO.............. S/25.00
+POLLO AL CILINDRO......................S/22.00
+MIXTO AL CILINDRO......................S/25.00
+CAJA CHINA.................................S/25.00
+
+GUARNICIONES
+CHOCLO....................................... S/5.00
+CHOCLO CON QUESO.................. S/7.00
+PORCION DE ARROZ......................S/4.00
+PORCION DE ENSALADA.................S/5.00
+
+ESPECIALES
+FILETE DE PECHUGA.......................S/16.00
+FILETE DE PIERNA
+DESHUESADA.................................S/16.00
+CHURRASCO..................................S/18.00
+CHULETA........................................S/16.00
+PARILLA ESPECIAL: CHULETA+FILETE DE POLLO+ MOLLEJA+ CHORIZO DE FINAS HIERBAS+
+ENSALADA....................................S/43.00
+PARRILA ESPECIAL TRIPLE:CHURRASCO+CHULETA+FILETE DE POLLO+MOLLEJA+ ANTICUCHO+CHORIZO DE FINAS
+HIERBAS+ENSALADA.....................S/55.00
+
+PORCIONES
+PORCION DE ANTICUCHOS
+CHOLO..........................................S/12.00
+PORCION DE ANTICUCHOS
+DE POLLO.........................................S/10.00
+PORCION DE ANTICUCHOS
+DE CORAZON..................................S/10.00
+MIXTO(ANT. DE POLLO+ANT. DE CORAZON+MOLLEJA+
+PANCITA+ RACHI)..........................S/15.00
+COMBINADO(MOLLEJA+PANCITA+
+RACHI).......................... ...............S/15.00
+PORCION DE MOLLEJA CON
+ENSALADA......................................S/15.00
+PORCION DE PANCITA.....................S/15.00
+PORCION DE RACHI.........................S/15.00
+PORCION DE MOLLEJITA+
+RACHI.............................................S/15.00
+PORCION DE PANCITA+
+RACHI.............................................S/15.00
+PROMO MIXTO(CHOCLO+
+ENSALADA).....................................S/18.00
+
+BEBIDAS CALIENTES
+TE, ANIS, MANZANILLA.............S/3.00
+CAFE........................................S/3.00
+
+POSTRES
+BROWNIE CON HELADO..........S/7.00
+
+BEBIDAS
+
+CHICHA MORADA
+CHICHA MORADA(JARRA
+GRANDE)....................................S/10.00
+CHICHA MORADA(JARRA
+CHICA)..........................................S/6.00
+CHICHA MORADA(VASO
+CHICA).........................................S/3.00
+LIMONADA(JARRA GRANDE).......S/12.00
+LIMONADA(JARRA CHICA).............S/7.00
+LIMONADA(VASO CHICA).............S/4.00
+INCA KOLA 1L Y MEDIO.................S/9.00
+INCA KOLA PERSONAL..................S/2.00
+INCA KOLA 1L...............................S/7.00
+COCA COLA 1L Y MEDIO...............S/9.00
+COCA COLA 1L.............................S/7.00
+COCA COLA PERSONAL..................S/2.00
+FANTA PERSONAL.........................S/2.00
+GORDITA.......................................S/5.00
+AGUA MINERAL.............................S/2.00
+MARACUYA(JARRA GRANDE)......S/12.00
+MARACUYA(JARRA CHICA)............S/7.00
+MARACUYA(VASO CHICA)............S/4.00
