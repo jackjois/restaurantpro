@@ -179,8 +179,8 @@ def pay(order_id):
         doc_number = f"{prefix}-{next_num:06d}"
         
         total = float(amount)
-        subtotal = total / 1.18
-        tax_amount = total - subtotal
+        subtotal = total
+        tax_amount = 0.0
         
         invoice = Invoice(
             payment_id=payment.id, invoice_type=invoice_type, document_number=doc_number,

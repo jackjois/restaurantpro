@@ -81,8 +81,7 @@
     <div class="mt-1 pt-1">
         {% if invoice %}
         <table style="margin:0;">
-            <tr><td>SUBTOTAL:</td><td class="text-right">S/ {{ "%.2f"|format(invoice.subtotal) }}</td></tr>
-            <tr><td>IGV (18%):</td><td class="text-right">S/ {{ "%.2f"|format(invoice.tax_amount) }}</td></tr>
+            <tr><td>Subtotal:</td><td class="text-right">S/ {{ "%.2f"|format(invoice.subtotal) }}</td></tr>
         </table>
         {% endif %}
         <table style="margin:0;">
