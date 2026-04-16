@@ -306,7 +306,9 @@
                 sessionStorage.removeItem('notificacion_plato');
             }
 
-            const flashedMessages = {{ get_flashed_messages(with_categories=true) | tojson | safe }};
+            // Parse seguro para evitar errores "Declaration or statement expected" en el IDE
+            const flashedMessagesStr = '{{ get_flashed_messages(with_categories=true) | tojson | safe }}';
+            const flashedMessages = flashedMessagesStr !== '[]' && flashedMessagesStr.startsWith('[') ? JSON.parse(flashedMessagesStr) : [];
             if (flashedMessages && flashedMessages.length > 0) {
                 flashedMessages.forEach(function(msg) {
                     let iconType = msg[0] === 'danger' ? 'error' : msg[0];

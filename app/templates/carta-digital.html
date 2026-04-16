@@ -136,20 +136,25 @@
         </div>
     </div>
 
-    <script>
-        // DATOS DE PLATOS DESDE FLASK
-        const menuItems = [
+    <!-- Datos protegidos en formato JSON para evitar errores en el Linter (Expression expected) -->
+    <script id="menu-data" type="application/json">
+        [
             {% for p in products %}
             {
-                id: {{ p.id }},
-                categoria: "cat_{{ p.category_id }}",
-                nombre: "{{ p.name|replace('\"', '\\\"') }}",
-                descripcion: "{{ (p.description or '')|replace('\"', '\\\"')|replace('\n', ' ') }}",
-                precio: {{ p.price }},
-                imagen: {% if p.image_url %}"{{ p.image_url | resolve_url }}"{% else %}null{% endif %}
+                "id": {{ p.id }},
+                "categoria": "cat_{{ p.category_id }}",
+                "nombre": "{{ p.name|replace('\"', '\\\"') }}",
+                "descripcion": "{{ (p.description or '')|replace('\"', '\\\"')|replace('\n', ' ') }}",
+                "precio": {{ p.price }},
+                "imagen": {% if p.image_url %}"{{ p.image_url | resolve_url }}"{% else %}null{% endif %}
             }{% if not loop.last %},{% endif %}
             {% endfor %}
-        ];
+        ]
+    </script>
+
+    <script>
+        // DATOS DE PLATOS DESDE FLASK
+        const menuItems = JSON.parse(document.getElementById('menu-data').textContent);
 
         let carrito = [];
 
