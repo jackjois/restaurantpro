@@ -8,6 +8,7 @@ from app.models.product import Product
 from app.models.category import Category
 from app.models.notification import Notification
 from app.models.audit_log import AuditLog
+from app.models.app_signal import AppSignal
 from app import db
 import logging
 from datetime import datetime, timezone
@@ -19,9 +20,11 @@ orders_bp = Blueprint('orders', __name__, url_prefix='/orders')
 def generate_order_number():
     """Genera un número de pedido único basado en secuencia de BD."""
     try:
-        seq = db.session.execute(db.text("SELECT nextval('order_number_seq')")).scalar()
-        date_part = datetime.now(timezone.utc).strftime('%Y%m%d')
-        return f'ORD-{date_part}-{seq:04d}'
+        # Savepoint explícito para no corromper la transacción externa si la secuencia no existe
+        with db.session.begin_nested():
+            seq = db.session.execute(db.text("SELECT nextval('order_number_seq')")).scalar()
+            date_part = datetime.now(timezone.utc).strftime('%Y%m%d')
+            return f'ORD-{date_part}-{seq:04d}'
     except Exception:
         # Fallback si la secuencia no existe aún
         import random, string
@@ -97,6 +100,7 @@ def submit_pos(table_id):
 
         new_order.total_amount = total
         db.session.commit()
+        AppSignal.emit('pos_order_created', 'orders')
 
         flash(f'Comanda generada e iniciada (Mesa {table.number}).', 'success')
         return {'success': True, 'order_id': new_order.id}
@@ -125,6 +129,7 @@ def create(table_id):
     table.status = 'occupied'
     db.session.add(new_order)
     db.session.commit()
+    AppSignal.emit('order_created', 'orders')
 
     flash(f'Pedido {new_order.order_number} iniciado para la Mesa {table.number}.', 'success')
     return redirect(url_for('orders.details', id=new_order.id))
@@ -154,6 +159,7 @@ def create_external():
     
     db.session.add(new_order)
     db.session.commit()
+    AppSignal.emit('external_order_created', 'orders')
     
     tipo_str = "Delivery" if order_type == 'delivery' else "Para Llevar"
     flash(f'Pedido {new_order.order_number} ({tipo_str}) iniciado para {customer_name}.', 'success')
@@ -204,6 +210,7 @@ def add_item(id):
     order.total_amount = float(order.total_amount) + float(subtotal)
     db.session.add(item)
     db.session.commit()
+    AppSignal.emit('item_added', 'order_items')
     return redirect(url_for('orders.details', id=order.id))
 
 @orders_bp.route('/remove_item/<int:item_id>', methods=['POST'])
@@ -235,6 +242,7 @@ def remove_item(item_id):
     AuditLog.log('REMOVE_ITEM', 'order_items', order.id, f"Se eliminó {item.quantity}x {item.product.name} de la orden {order.order_number}", current_user.id)
     
     db.session.commit()
+    AppSignal.emit('item_removed', 'order_items')
 
     flash(f'{item.product.name} eliminado de la orden correctamente.', 'success')
     return redirect(url_for('orders.details', id=order.id))
@@ -252,6 +260,7 @@ def update_item_status(item_id):
     new_status = request.form.get('status')
     item.status = new_status
     db.session.commit()
+    AppSignal.emit('kitchen_status_update', 'order_items')
     
     if new_status == 'ready':
         parent_order = Order.query.get(item.order_id)
@@ -286,6 +295,7 @@ def cancel(id):
         if table: table.status = 'free'
         order.status = 'cancelled'  # Soft-delete: no eliminar datos financieros
         db.session.commit()
+        AppSignal.emit('order_cancelled', 'orders')
 
         flash('Pedido cancelado por error de apertura.', 'success')
     else:
@@ -299,6 +309,7 @@ def cancel(id):
         AuditLog.log('CANCEL_ORDER', 'orders', order.id, f"Pedido {order.order_number} anulado. Monto: {order.total_amount}. Motivo: {cancel_reason}", current_user.id)
         
         db.session.commit()
+        AppSignal.emit('order_cancelled', 'orders')
 
         flash('Pedido anulado y mesa liberada.', 'warning')
     return redirect(url_for('tables.monitor'))

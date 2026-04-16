@@ -39,15 +39,25 @@ class Config:
     ssl_ctx.check_hostname = False
     ssl_ctx.verify_mode = ssl.CERT_NONE
 
-    SQLALCHEMY_ENGINE_OPTIONS = {
-        "pool_size": 1,
-        "max_overflow": 2,
-        "pool_recycle": 280,
-        "pool_pre_ping": True,
-        "connect_args": {
-            "ssl_context": ssl_ctx
+    if os.environ.get('VERCEL') != False and os.environ.get('VERCEL') is not None:
+        from sqlalchemy.pool import NullPool
+        SQLALCHEMY_ENGINE_OPTIONS = {
+            "poolclass": NullPool,
+            "connect_args": {
+                "ssl_context": ssl_ctx
+            }
         }
-    }
+    else:
+        # Modo de desarrollo local (XAMPP / local WSGI)
+        SQLALCHEMY_ENGINE_OPTIONS = {
+            "pool_size": 2,
+            "max_overflow": 2,
+            "pool_recycle": 280,
+            "pool_pre_ping": True,
+            "connect_args": {
+                "ssl_context": ssl_ctx
+            }
+        }
     
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     

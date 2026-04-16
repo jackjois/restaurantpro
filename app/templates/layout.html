@@ -342,12 +342,12 @@
             if (supabaseUrl && supabaseKey) {
                 const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
                 
-                // Suscribirse a cambios en cualquier tabla importante (orders, order_items, tables)
+                // Suscribirse de manera SEGURA únicamente a los "pings" de la tabla app_signals
                 supabase
                   .channel('schema-db-changes')
                   .on(
                     'postgres_changes',
-                    { event: '*', schema: 'public' },
+                    { event: 'INSERT', schema: 'public', table: 'app_signals' },
                     (payload) => {
                       const currentPath = window.location.pathname;
                       

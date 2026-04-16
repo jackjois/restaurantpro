@@ -38,7 +38,21 @@ def index():
     chart_labels = []
     chart_data = []
     
-    # Retrocedemos desde hace 6 días hasta hoy (7 días en total)
+    seven_days_ago = today - timedelta(days=6)
+    
+    # Única consulta para traer todas las ventas completadas de los últimos 7 días agrupadas por fecha
+    daily_sales_query = db.session.query(
+        func.date(Payment.created_at).label('fecha'),
+        func.sum(Payment.amount).label('total')
+    ).filter(
+        Payment.status == 'completed',
+        func.date(Payment.created_at) >= seven_days_ago
+    ).group_by(func.date(Payment.created_at)).all()
+    
+    # Convertimos a diccionario para aceso rápido: { date(year, month, day): total }
+    sales_dict = { row.fecha: float(row.total or 0.0) for row in daily_sales_query }
+
+    # Rellenamos los 7 días
     for i in range(6, -1, -1):
         target_date = today - timedelta(days=i)
         
@@ -46,13 +60,9 @@ def index():
         label = target_date.strftime('%d/%m')
         chart_labels.append(label)
         
-        # Sumar los pagos completados de ese día específico
-        daily_total = db.session.query(func.sum(Payment.amount)).filter(
-            Payment.status == 'completed',
-            func.date(Payment.created_at) == target_date
-        ).scalar() or 0.0
-        
-        chart_data.append(float(daily_total))
+        # Recuperamos la suma del diccionario, o 0.0 si no hubo ventas ese día
+        daily_total = sales_dict.get(target_date, 0.0)
+        chart_data.append(daily_total)
 
     # 3. NUEVO: Últimos 5 pedidos para el panel lateral rápido
     recent_orders = Order.query.order_by(Order.created_at.desc()).limit(5).all()

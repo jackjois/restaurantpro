@@ -14,6 +14,12 @@ _rate_limit_store = {}
 
 menu_bp = Blueprint('menu', __name__, url_prefix='/menu')
 
+from app.models.app_signal import AppSignal
+from datetime import datetime, timezone, timedelta
+
+def get_now_utc():
+    return datetime.now(timezone.utc)
+
 # 1. RUTA PARA MOSTRAR LA CARTA (No requiere login)
 @menu_bp.route('/<qr_code>')
 def view_menu(qr_code):
@@ -28,19 +34,28 @@ def view_menu(qr_code):
 @csrf.exempt  # API JSON pública, no usa sesiones de Flask
 @menu_bp.route('/<qr_code>/order', methods=['POST'])
 def place_order(qr_code):
-    # Rate limiting por IP real (máx 5 pedidos por minuto)
-    # Usar X-Forwarded-For para obtener la IP real en Vercel/proxies
-    client_ip = request.headers.get('X-Forwarded-For', request.remote_addr) or 'unknown'
-    if ',' in client_ip:
-        client_ip = client_ip.split(',')[0].strip()
-    rate_key = f'menu_rate_{client_ip}'
-    now = time.time()
-    recent_orders = _rate_limit_store.get(rate_key, [])
-    recent_orders = [t for t in recent_orders if now - t < 60]  # Último minuto
-    if len(recent_orders) >= 5:
-        return jsonify({'error': 'Demasiados pedidos. Espera un momento.'}), 429
-    
     table = Table.query.filter_by(qr_code=qr_code).first_or_404()
+    
+    # RATE LIMITING CON BASE DE DATOS (SERVERLESS SAFE)
+    one_min_ago = get_now_utc() - timedelta(minutes=1)
+    
+    # Limitar 2 pedidos web por minuto POR MESA
+    table_orders_count = Order.query.filter(
+        Order.user_id == None,
+        Order.table_id == table.id,
+        Order.created_at >= one_min_ago
+    ).count()
+    if table_orders_count >= 2:
+        return jsonify({'error': 'Acabas de hacer un pedido. Espera 1 minuto.'}), 429
+        
+    # Limitar a 30 pedidos web por minuto GLOBALES en el restaurante (anti botnet DDoS)
+    global_orders_count = Order.query.filter(
+        Order.user_id == None,
+        Order.created_at >= one_min_ago
+    ).count()
+    if global_orders_count >= 30:
+        return jsonify({'error': 'El sistema está recibiendo muchos pedidos en este momento.'}), 429
+    
     data = request.json
     
     if not data or not isinstance(data, dict):
@@ -119,14 +134,6 @@ def place_order(qr_code):
     )
 
     db.session.commit()
-    
-    # Registrar para rate limiting
-    recent_orders.append(now)
-    _rate_limit_store[rate_key] = recent_orders
-    
-    # Limpiar entradas viejas del store cada 100 pedidos para evitar memory leak
-    if len(_rate_limit_store) > 100:
-        cutoff = now - 120
-        _rate_limit_store.clear()
+    AppSignal.emit('digital_menu_order', 'orders')
 
     return jsonify({'success': True, 'message': 'Pedido enviado a cocina'})
