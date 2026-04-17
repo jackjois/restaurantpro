@@ -121,7 +121,7 @@
                 <p class="text-muted mb-3" style="font-size: 0.85rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;" title="{{ p.description }}">{{ p.description or 'Sin descripción' }}</p>
                 
                 <div class="mt-auto pt-3 border-top d-flex justify-content-between align-items-center">
-                    <small class="text-muted fw-bold">ID: {{ p.id }}</small>
+                    <small class="text-muted fw-bold d-none">ID: {{ p.id }}</small>
                     {% if p.track_stock %}
                         <span class="badge-soft-info px-2 py-1" style="font-size: 0.85rem;"><i class="bi bi-box-seam me-1"></i> {{ p.stock }}</span>
                     {% else %}
