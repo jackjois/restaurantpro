@@ -52,7 +52,11 @@ def create():
             file_bytes = image_file.read()
             
             try:
-                get_supabase().storage.from_('restaurant_assets').upload(new_filename, file_bytes)
+                get_supabase().storage.from_('restaurant_assets').upload(
+                    new_filename, 
+                    file_bytes,
+                    file_options={"content-type": image_file.mimetype}
+                )
                 public_url = get_supabase().storage.from_('restaurant_assets').get_public_url(new_filename)
                 filename = public_url
             except Exception as e:
@@ -112,7 +116,11 @@ def edit(id):
             file_bytes = image_file.read()
             
             try:
-                get_supabase().storage.from_('restaurant_assets').upload(new_filename, file_bytes)
+                get_supabase().storage.from_('restaurant_assets').upload(
+                    new_filename, 
+                    file_bytes,
+                    file_options={"content-type": image_file.mimetype}
+                )
                 public_url = get_supabase().storage.from_('restaurant_assets').get_public_url(new_filename)
                 product.image_url = public_url
             except Exception as e:

@@ -48,7 +48,11 @@ def index():
                 file_bytes = file.read()
                 
                 try:
-                    res = get_supabase().storage.from_('restaurant_assets').upload(new_filename, file_bytes)
+                    get_supabase().storage.from_('restaurant_assets').upload(
+                        new_filename, 
+                        file_bytes,
+                        file_options={"content-type": file.mimetype}
+                    )
                     public_url = get_supabase().storage.from_('restaurant_assets').get_public_url(new_filename)
                     setting.logo_url = public_url
                 except Exception as e:
