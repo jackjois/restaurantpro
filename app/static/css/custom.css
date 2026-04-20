@@ -77,10 +77,21 @@ h1, h2, h3, h4, h5, h6 {
     opacity: 1;
 }
 
+/* Sidebar fijo en desktop — solo el contenido principal hace scroll */
+@media (min-width: 768px) {
+    #sidebarMenu {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        overflow-y: auto;
+    }
+}
+
 /* Main content spacing adjustments */
 .main-content { 
     min-width: 0; 
     background-color: transparent;
+    overflow-y: auto;
 }
 
 /* Notification Dots */
