@@ -207,6 +207,11 @@ def pay(order_id):
         db.session.add(invoice)
         
         order.status = 'paid'
+        # Auto-marcar todos los items como entregados al cobrar
+        # (si el cliente pagó, la comida ya fue servida)
+        for item in order.items:
+            if item.status != 'cancelled':
+                item.status = 'delivered'
         table = Table.query.get(order.table_id)
         
         if table:

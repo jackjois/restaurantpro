@@ -272,7 +272,7 @@ def remove_item(item_id):
 @orders_bp.route('/kitchen')
 @login_required
 def kitchen():
-    pending_items = db.session.query(OrderItem).join(Order).filter(OrderItem.status.in_(['pending', 'preparing']), Order.status != 'cancelled').order_by(OrderItem.created_at).all()
+    pending_items = db.session.query(OrderItem).join(Order).filter(OrderItem.status.in_(['pending', 'preparing']), Order.status.notin_(['cancelled', 'paid'])).order_by(OrderItem.created_at).all()
     return render_template('orders/kitchen.html', items=pending_items)
 
 @orders_bp.route('/kitchen/update/<int:item_id>', methods=['POST'])
