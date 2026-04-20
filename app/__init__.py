@@ -1,5 +1,5 @@
 import os
-from flask import Flask, send_from_directory, url_for
+from flask import Flask, send_from_directory, url_for, render_template
 import logging
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
