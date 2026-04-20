@@ -369,7 +369,7 @@
                       // MECANISMO DE SEGURIDAD:
                       // Si hay un formulario interactivo abierto (un Modal), NUNCA recargar la página 
                       // o de lo contrario le borraremos lo que el usuario está tipeando.
-                      if (document.querySelector('.modal.show') || currentPath.includes('/edit') || currentPath.includes('/create') || currentPath.includes('/pay')) {
+                      if (document.querySelector('.modal.show') || currentPath.includes('/edit') || currentPath.includes('/create') || currentPath.includes('/pay') || currentPath.includes('/checkout')) {
                           shouldReload = false;
                       }
 
