@@ -83,6 +83,25 @@ def create_app(config_class=Config):
     def manifest():
         return send_from_directory(os.path.join(app.root_path, 'static'), 'manifest.json')
     
+    @app.route('/health')
+    def health_check():
+        return {'status': 'ok', 'app': 'RestaurantPro'}, 200
+    
+    # Excluir health check de CSRF
+    csrf.exempt(health_check)
+    
+    @app.errorhandler(404)
+    def not_found_error(error):
+        from flask_login import current_user
+        if current_user.is_authenticated:
+            return render_template('errors/404.html'), 404
+        return render_template('errors/404_public.html'), 404
+    
+    @app.errorhandler(500)
+    def internal_error(error):
+        db.session.rollback()
+        return render_template('errors/500.html'), 500
+    
     @app.template_filter('resolve_url')
     def resolve_url(path, folder='uploads/products/'):
         """Resuelve la URL de una imagen. Con Supabase Storage, las URLs ya son absolutas."""

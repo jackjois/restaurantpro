@@ -203,7 +203,9 @@ def details(id):
 @login_required
 @role_required('admin', 'cashier', 'waiter')
 def add_item(id):
-    order = Order.query.get_or_404(id)
+    order = db.session.query(Order).with_for_update().get(id)
+    if not order:
+        abort(404)
     
     if order.status in ['paid', 'cancelled']:
         flash('Seguridad: No se pueden añadir platos a una orden cerrada o anulada.', 'danger')
@@ -275,9 +277,14 @@ def kitchen():
 
 @orders_bp.route('/kitchen/update/<int:item_id>', methods=['POST'])
 @login_required
+@role_required('admin', 'chef')
 def update_item_status(item_id):
     item = OrderItem.query.get_or_404(item_id)
     new_status = request.form.get('status')
+    allowed_statuses = ('pending', 'preparing', 'ready', 'delivered', 'cancelled')
+    if new_status not in allowed_statuses:
+        flash('Estado no válido.', 'danger')
+        return redirect(url_for('orders.kitchen'))
     item.status = new_status
     db.session.commit()
     AppSignal.emit('kitchen_status_update', 'order_items')

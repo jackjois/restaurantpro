@@ -4,9 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}RestaurantPro{% endblock %}</title>
+    <meta name="description" content="RestaurantPro - Sistema POS profesional para restaurantes. Gestión de pedidos, caja, cocina y reportes en tiempo real.">
     
     {% if restaurant and restaurant.logo_url %}
     <link rel="icon" href="{{ restaurant.logo_url | resolve_url('') }}">
+    {% else %}
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text x='0' y='14' font-size='16'>🍽️</text></svg>">
     {% endif %}
     
     <link rel="manifest" href="/manifest.json">
@@ -252,7 +255,7 @@
                             <strong>{{ current_user.username }}</strong>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-dark text-small shadow" aria-labelledby="dropdownUser">
-                            <li><a class="dropdown-item" href="{{ url_for('auth.switch_user') }}"><i class="bi bi-arrow-left-right me-2"></i>Cambiar Usuario</a></li>
+                            <li><form method="POST" action="{{ url_for('auth.switch_user') }}" class="d-inline"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="dropdown-item border-0 bg-transparent w-100 text-start"><i class="bi bi-arrow-left-right me-2"></i>Cambiar Usuario</button></form></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><form method="POST" action="{{ url_for('auth.logout') }}" class="d-inline"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="dropdown-item text-danger border-0 bg-transparent w-100 text-start"><i class="bi bi-box-arrow-right me-2"></i>Cerrar Sesión</button></form></li>
                         </ul>
@@ -400,6 +403,30 @@
             if (row) {
                 row.classList.remove('dropdown-open');
                 row.style.zIndex = "";
+            }
+        });
+    </script>
+
+    <script>
+        // SIDEBAR ACTIVO DINÁMICO: Marca automáticamente el enlace de la sección actual
+        document.addEventListener('DOMContentLoaded', function() {
+            const path = window.location.pathname;
+            // Quitar active hardcodeado
+            document.querySelectorAll('.sidebar-link.active').forEach(el => el.classList.remove('active'));
+            // Encontrar el enlace que mejor coincide con la URL actual
+            let bestMatch = null;
+            let bestLength = 0;
+            document.querySelectorAll('.sidebar-link[href]').forEach(link => {
+                const href = link.getAttribute('href');
+                if (href && href !== '#' && path.startsWith(href) && href.length > bestLength) {
+                    bestMatch = link;
+                    bestLength = href.length;
+                }
+            });
+            if (bestMatch) {
+                bestMatch.classList.add('active');
+                const collapse = bestMatch.closest('.collapse');
+                if (collapse) collapse.classList.add('show');
             }
         });
     </script>

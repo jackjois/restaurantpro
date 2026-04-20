@@ -33,6 +33,9 @@ def index():
 def create():
     if request.method == 'POST':
         name = request.form.get('name')
+        if not name or not name.strip():
+            flash('El nombre del producto es obligatorio.', 'danger')
+            return redirect(url_for('products.index'))
         description = request.form.get('description')
         price = safe_float(request.form.get('price'), default=0.0)
         cost = safe_float(request.form.get('cost'), default=0.0)
@@ -96,7 +99,11 @@ def edit(id):
     product = Product.query.get_or_404(id)
     
     if request.method == 'POST':
-        product.name = request.form.get('name')
+        new_name = request.form.get('name')
+        if not new_name or not new_name.strip():
+            flash('El nombre del producto es obligatorio.', 'danger')
+            return redirect(url_for('products.edit', id=id))
+        product.name = new_name
         product.description = request.form.get('description')
         product.price = safe_float(request.form.get('price'), default=0.0)
         product.cost = safe_float(request.form.get('cost'), default=0.0)
@@ -116,6 +123,14 @@ def edit(id):
             file_bytes = image_file.read()
             
             try:
+                # Limpiar imagen anterior del Storage para evitar archivos huérfanos
+                if product.image_url and 'supabase' in product.image_url:
+                    try:
+                        old_file = product.image_url.split('/')[-1].split('?')[0]
+                        get_supabase().storage.from_('restaurant_assets').remove([old_file])
+                    except Exception:
+                        pass  # No fallar si la limpieza no funciona
+                
                 get_supabase().storage.from_('restaurant_assets').upload(
                     new_filename, 
                     file_bytes,

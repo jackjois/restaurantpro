@@ -23,6 +23,10 @@ def create():
     full_name = request.form.get('full_name')
     role = request.form.get('role')
     
+    if not password or len(password.strip()) < 8:
+        flash('La contraseña debe tener al menos 8 caracteres.', 'danger')
+        return redirect(url_for('users.index'))
+    
     # Verificamos que el usuario no exista
     if User.query.filter_by(username=username).first() or User.query.filter_by(email=email).first():
         flash('Error: El nombre de usuario o el correo electrónico ya están en uso.', 'danger')
@@ -90,12 +94,8 @@ def delete(id):
         return redirect(url_for('users.index'))
         
     user = User.query.get_or_404(id)
-    try:
-        db.session.delete(user)
-        db.session.commit()
-        flash('Usuario eliminado del sistema.', 'success')
-    except Exception as e:
-        db.session.rollback()
-        flash('Este usuario tiene registros asociados (pagos, pedidos). Se recomienda cambiar su estado a "Inactivo" en lugar de eliminarlo.', 'warning')
+    user.is_active = False
+    db.session.commit()
+    flash(f'El usuario "{user.username}" ha sido desactivado. Puede reactivarse desde la edición.', 'success')
         
     return redirect(url_for('users.index'))

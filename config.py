@@ -37,9 +37,18 @@ class Config:
     
     ssl_ctx = ssl.create_default_context()
     
-    # IMPORTANTE: El pooler de Supabase usa certificados que lanzan CERTIFICATE_VERIFY_FAILED
-    # en entornos serverless sin el certificado raíz explícito instalado.
-    # Por lo tanto, debemos usar CERT_NONE para evitar el Internal Server Error (500).
+    # SEGURIDAD SSL — Documentación de Riesgo
+    # ─────────────────────────────────────────────────────────────────────
+    # El pooler de transacciones de Supabase (puerto 6543) presenta certificados
+    # que NO se validan con los CA bundles estándar en entornos serverless
+    # (Vercel/AWS Lambda), causando ssl.SSLCertVerificationError → HTTP 500.
+    #
+    # RIESGO: CERT_NONE desactiva la verificación SSL, permitiendo ataques MITM.
+    # MITIGACIÓN: La conexión viaja sobre infraestructura interna de AWS
+    #             (Supabase ↔ Vercel) con cifrado TLS activo en tránsito.
+    # TODO: Configurar certificado CA raíz de Supabase explícitamente
+    #       para habilitar CERT_REQUIRED en producción.
+    # ─────────────────────────────────────────────────────────────────────
     ssl_ctx.check_hostname = False
     ssl_ctx.verify_mode = ssl.CERT_NONE
 

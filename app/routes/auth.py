@@ -72,7 +72,7 @@ def logout():
     logout_user()
     return redirect(url_for('auth.login'))
 
-@auth_bp.route('/switch')
+@auth_bp.route('/switch', methods=['POST'])
 @login_required
 def switch_user():
     """Cierra la sesión actual y redirige al login para cambiar de usuario."""
@@ -95,6 +95,10 @@ def register():
         username = request.form.get('username')
         email = request.form.get('email')
         password = request.form.get('password')
+        
+        if not password or len(password.strip()) < 8:
+            flash('La contraseña debe tener al menos 8 caracteres.', 'danger')
+            return redirect(url_for('auth.register'))
         
         # Revisar duplicados
         if User.query.filter_by(username=username).first():

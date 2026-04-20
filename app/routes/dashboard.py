@@ -18,8 +18,15 @@ dashboard_bp = Blueprint('dashboard', __name__)
 @login_required
 @role_required('admin') # <-- Solo Administradores entran aquí
 def index():
-    # Usar timezone de Perú para que las ventas nocturnas se contabilicen correctamente
-    today = datetime.now(PERU_TZ).date()
+    # Usar timezone de Perú para contabilizar ventas nocturnas correctamente
+    now_peru = datetime.now(PERU_TZ)
+    today_peru = now_peru.date()
+    
+    # Calcular límites UTC del día actual en hora Perú
+    today_start_peru = now_peru.replace(hour=0, minute=0, second=0, microsecond=0)
+    tomorrow_start_peru = today_start_peru + timedelta(days=1)
+    today_start_utc = today_start_peru.astimezone(timezone.utc)
+    tomorrow_start_utc = tomorrow_start_peru.astimezone(timezone.utc)
 
     # 1. Tarjetas Rápidas
     # NUEVO: Contamos exactamente los platos que faltan salir de cocina
@@ -28,45 +35,46 @@ def index():
     
     # Total de pedidos efectivos generados en el día (excluye anulados)
     today_orders_count = Order.query.filter(
-        func.date(Order.created_at) == today,
+        Order.created_at >= today_start_utc,
+        Order.created_at < tomorrow_start_utc,
         Order.status != 'cancelled'
     ).count()
 
     # Ingresos de Hoy
     today_sales = db.session.query(func.sum(Payment.amount)).filter(
         Payment.status == 'completed',
-        func.date(Payment.created_at) == today
+        Payment.created_at >= today_start_utc,
+        Payment.created_at < tomorrow_start_utc
     ).scalar() or 0.0
 
-    # 2. Gráfico: Ingresos de los últimos 7 días
+    # 2. Gráfico: Ingresos de los últimos 7 días (con timezone Perú)
     chart_labels = []
     chart_data = []
     
-    seven_days_ago = today - timedelta(days=6)
+    # Calcular rango UTC para los últimos 7 días (en hora Perú)
+    seven_days_ago_peru = (now_peru - timedelta(days=6)).replace(hour=0, minute=0, second=0, microsecond=0)
+    seven_days_ago_utc = seven_days_ago_peru.astimezone(timezone.utc)
     
-    # Única consulta para traer todas las ventas completadas de los últimos 7 días agrupadas por fecha
-    daily_sales_query = db.session.query(
-        func.date(Payment.created_at).label('fecha'),
-        func.sum(Payment.amount).label('total')
-    ).filter(
+    # Traer todos los pagos completados del rango
+    recent_payments = Payment.query.filter(
         Payment.status == 'completed',
-        func.date(Payment.created_at) >= seven_days_ago
-    ).group_by(func.date(Payment.created_at)).all()
+        Payment.created_at >= seven_days_ago_utc
+    ).all()
     
-    # Convertimos a diccionario para aceso rápido: { date(year, month, day): total }
-    sales_dict = { row.fecha: float(row.total or 0.0) for row in daily_sales_query }
+    # Agrupar por fecha en hora Perú (no UTC) para contabilidad correcta
+    sales_dict = {}
+    for p in recent_payments:
+        p_time = p.created_at
+        if p_time.tzinfo is None:
+            p_time = p_time.replace(tzinfo=timezone.utc)
+        peru_date = p_time.astimezone(PERU_TZ).date()
+        sales_dict[peru_date] = sales_dict.get(peru_date, 0.0) + float(p.amount)
 
     # Rellenamos los 7 días
     for i in range(6, -1, -1):
-        target_date = today - timedelta(days=i)
-        
-        # Formato de fecha para la etiqueta (Ej: 26/03)
-        label = target_date.strftime('%d/%m')
-        chart_labels.append(label)
-        
-        # Recuperamos la suma del diccionario, o 0.0 si no hubo ventas ese día
-        daily_total = sales_dict.get(target_date, 0.0)
-        chart_data.append(daily_total)
+        target_date = today_peru - timedelta(days=i)
+        chart_labels.append(target_date.strftime('%d/%m'))
+        chart_data.append(sales_dict.get(target_date, 0.0))
 
     # 3. NUEVO: Últimos 5 pedidos para el panel lateral rápido
     recent_orders = Order.query.order_by(Order.created_at.desc()).limit(5).all()
