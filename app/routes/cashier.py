@@ -8,6 +8,7 @@ from app.models.notification import Notification
 from app.models.cash_register import CashSession
 from app.models.cash_expense import CashExpense
 from app.models.audit_log import AuditLog
+from app.models.app_signal import AppSignal
 from datetime import datetime, timezone
 from app import db
 from app.utils.formatters import safe_float
