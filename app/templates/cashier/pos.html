@@ -111,8 +111,8 @@
                             <button type="button" class="btn btn-warning btn-lg fw-bold px-3 shadow-sm" style="border-radius: 16px;" data-bs-toggle="modal" data-bs-target="#expenseModal">
                                 <i class="bi bi-box-arrow-right me-1"></i> Egreso
                             </button>
-                            <form action="{{ url_for('cashier.close_session') }}" method="POST" class="m-0">
-                                <button type="submit" class="btn btn-light btn-lg fw-bold text-danger px-4 shadow-sm" style="border-radius: 16px;" onclick="return confirm('¿Estás 100% seguro de cerrar la jornada actual?');">
+                            <form action="{{ url_for('cashier.close_session') }}" method="POST" class="m-0" id="closeSessionForm">
+                                <button type="button" class="btn btn-light btn-lg fw-bold text-danger px-4 shadow-sm" style="border-radius: 16px;" onclick="confirmCloseSession()">
                                     <i class="bi bi-lock-fill me-1"></i> Cerrar Jornada
                                 </button>
                             </form>
@@ -236,4 +236,23 @@
         </div>
     </div>
 </div>
+
+<script>
+function confirmCloseSession() {
+    Swal.fire({
+        title: '¿Cerrar la Jornada?',
+        text: "Al cerrar la caja se emitirá el Ticket Z (Resumen de ventas y egresos). Esta acción es irreversible y no podrás realizar más cobros hasta la próxima apertura.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#8f9bba',
+        confirmButtonText: '<i class="bi bi-lock-fill"></i> Sí, Cerrar Caja',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            document.getElementById('closeSessionForm').submit();
+        }
+    })
+}
+</script>
 {% endblock %}
