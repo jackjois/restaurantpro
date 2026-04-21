@@ -6,10 +6,13 @@ from app.models.order import OrderItem, Order
 from app.models.product import Product
 from app.models.category import Category # <-- IMPORTANTE: Añadimos Category
 from app import db
-from sqlalchemy import func, desc
+from sqlalchemy import func, desc, cast, Date
 from app.utils.excel_generator import generate_sales_excel
 from app.utils.pdf_generator import generate_sales_pdf
 import collections
+from datetime import datetime, timezone, timedelta
+
+PERU_TZ = timezone(timedelta(hours=-5))
 
 reports_bp = Blueprint('reports', __name__, url_prefix='/reports')
 
@@ -23,9 +26,20 @@ def sales():
     query = Payment.query.filter_by(status='completed')
     
     if start_date:
-        query = query.filter(func.date(Payment.created_at) >= start_date)
+        try:
+            sd_peru = datetime.strptime(start_date, '%Y-%m-%d').replace(tzinfo=PERU_TZ)
+            sd_utc = sd_peru.astimezone(timezone.utc)
+            query = query.filter(Payment.created_at >= sd_utc)
+        except ValueError:
+            pass
+            
     if end_date:
-        query = query.filter(func.date(Payment.created_at) <= end_date)
+        try:
+            ed_peru = datetime.strptime(end_date, '%Y-%m-%d').replace(hour=23, minute=59, second=59, tzinfo=PERU_TZ)
+            ed_utc = ed_peru.astimezone(timezone.utc)
+            query = query.filter(Payment.created_at <= ed_utc)
+        except ValueError:
+            pass
         
     payments = query.order_by(Payment.created_at.asc()).all()
     
@@ -33,9 +47,19 @@ def sales():
     from app.models.cash_expense import CashExpense
     expense_query = CashExpense.query
     if start_date:
-        expense_query = expense_query.filter(func.date(CashExpense.created_at) >= start_date)
+        try:
+            sd_peru = datetime.strptime(start_date, '%Y-%m-%d').replace(tzinfo=PERU_TZ)
+            sd_utc = sd_peru.astimezone(timezone.utc)
+            expense_query = expense_query.filter(CashExpense.created_at >= sd_utc)
+        except ValueError:
+            pass
     if end_date:
-        expense_query = expense_query.filter(func.date(CashExpense.created_at) <= end_date)
+        try:
+            ed_peru = datetime.strptime(end_date, '%Y-%m-%d').replace(hour=23, minute=59, second=59, tzinfo=PERU_TZ)
+            ed_utc = ed_peru.astimezone(timezone.utc)
+            expense_query = expense_query.filter(CashExpense.created_at <= ed_utc)
+        except ValueError:
+            pass
     expenses = expense_query.order_by(CashExpense.created_at.desc()).all()
     total_expenses = sum(float(e.amount) for e in expenses)
     
@@ -51,7 +75,12 @@ def sales():
     sales_by_method = collections.defaultdict(float)
     
     for p in payments:
-        date_str = p.created_at.strftime('%Y-%m-%d')
+        p_time = p.created_at
+        if p_time.tzinfo is None:
+            p_time = p_time.replace(tzinfo=timezone.utc)
+        peru_date = p_time.astimezone(PERU_TZ)
+        date_str = peru_date.strftime('%Y-%m-%d')
+        
         amount = float(p.amount)
         method = p.payment_method.upper()
         
@@ -106,9 +135,19 @@ def export_sales(format):
     query = Payment.query.filter_by(status='completed')
     
     if start_date:
-        query = query.filter(func.date(Payment.created_at) >= start_date)
+        try:
+            sd_peru = datetime.strptime(start_date, '%Y-%m-%d').replace(tzinfo=PERU_TZ)
+            sd_utc = sd_peru.astimezone(timezone.utc)
+            query = query.filter(Payment.created_at >= sd_utc)
+        except ValueError:
+            pass
     if end_date:
-        query = query.filter(func.date(Payment.created_at) <= end_date)
+        try:
+            ed_peru = datetime.strptime(end_date, '%Y-%m-%d').replace(hour=23, minute=59, second=59, tzinfo=PERU_TZ)
+            ed_utc = ed_peru.astimezone(timezone.utc)
+            query = query.filter(Payment.created_at <= ed_utc)
+        except ValueError:
+            pass
         
     payments = query.order_by(Payment.created_at.desc()).all()
     

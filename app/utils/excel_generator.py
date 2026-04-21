@@ -2,6 +2,9 @@ import openpyxl
 from openpyxl.styles import Font, Alignment
 from app.models.setting import Setting
 import io
+from datetime import timezone, timedelta
+
+PERU_TZ = timezone(timedelta(hours=-5))
 
 def generate_sales_excel(payments):
     wb = openpyxl.Workbook()
@@ -52,9 +55,14 @@ def generate_sales_excel(payments):
         monto_base = monto_final - monto_envio
         utilidad = monto_base - costo_total_orden
 
+        p_time = p.created_at
+        if p_time.tzinfo is None:
+            p_time = p_time.replace(tzinfo=timezone.utc)
+        fecha_str = p_time.astimezone(PERU_TZ).strftime('%Y-%m-%d %H:%M')
+
         ws.append([
             p.id, 
-            p.created_at.strftime('%Y-%m-%d %H:%M'), 
+            fecha_str, 
             modalidad,
             cliente,
             p.payment_method.upper(), 
