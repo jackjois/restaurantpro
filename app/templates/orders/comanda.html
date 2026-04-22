@@ -54,7 +54,11 @@
     </div>
 
     <script>
-        window.onload = function() { window.print(); }
+        window.onload = function() { 
+            window.print();
+            // Auto-cerrar popup tras imprimir (o si el usuario cancela el diálogo)
+            setTimeout(function() { window.close(); }, 500);
+        }
     </script>
 </body>
 </html>

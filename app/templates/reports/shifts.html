@@ -151,10 +151,10 @@
                 </td>
                 <td>
                     {% if s.status == 'closed' %}
-                    <a href="{{ url_for('reports.shift_ticket', session_id=s.id) }}" target="_blank"
-                        class="btn btn-sm btn-light fw-bold text-primary shadow-sm" style="border-radius:12px;">
+                    <button onclick="window.open('{{ url_for('reports.shift_ticket', session_id=s.id) }}', 'ticket_z', 'width=450,height=700,scrollbars=yes,resizable=yes')"
+                        class="btn btn-sm btn-light fw-bold text-primary shadow-sm" style="border-radius:12px; border:none; cursor:pointer;">
                         <i class="bi bi-printer-fill me-1"></i>Ver / Imprimir
-                    </a>
+                    </button>
                     {% endif %}
                 </td>
             </tr>

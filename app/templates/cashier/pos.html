@@ -272,3 +272,36 @@
 {% endif %}
 
 {% endblock %}
+
+{% block scripts %}
+<script>
+    // Auto-popup: Abrir tickets de impresión en ventana emergente sin salir del POS
+    document.addEventListener('DOMContentLoaded', function() {
+        const params = new URLSearchParams(window.location.search);
+        
+        // Popup de Ticket de Venta (boleta/factura) — después de cobrar
+        const popupTicket = params.get('popup_ticket');
+        if (popupTicket) {
+            window.open(
+                '{{ url_for("cashier.ticket", order_id=0) }}'.replace('/0', '/' + popupTicket),
+                'ticket_venta',
+                'width=420,height=650,scrollbars=yes,resizable=yes'
+            );
+            // Limpiar URL para que no reabra al recargar
+            window.history.replaceState({}, '', window.location.pathname);
+        }
+        
+        // Popup de Ticket Z (cierre de caja) — después de cerrar jornada
+        const popupShift = params.get('popup_shift');
+        if (popupShift) {
+            window.open(
+                '{{ url_for("reports.shift_ticket", session_id=0) }}'.replace('/0', '/' + popupShift),
+                'ticket_z',
+                'width=450,height=700,scrollbars=yes,resizable=yes'
+            );
+            // Limpiar URL para que no reabra al recargar
+            window.history.replaceState({}, '', window.location.pathname);
+        }
+    });
+</script>
+{% endblock %}

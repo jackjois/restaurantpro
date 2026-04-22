@@ -88,8 +88,8 @@ def close_session():
     AuditLog.log('CLOSE_SESSION', 'cash_sessions', current_session.id, f"Caja cerrada. Monto Esperado: S/ {expected_amount}, Ingresado: S/ {closing_amount}", current_user.id)
     db.session.commit()
     
-    flash(f'Caja cerrada. Ventas puras: S/ {total_sales} | Egresos: S/ {total_expenses}. Revisa tu Ticket Z a continuación.', 'success')
-    return redirect(url_for('reports.shift_ticket', session_id=current_session.id))
+    flash(f'Caja cerrada. Ventas puras: S/ {total_sales} | Egresos: S/ {total_expenses}. Tu Ticket Z se abrirá en instantes.', 'success')
+    return redirect(url_for('cashier.pos', popup_shift=current_session.id))
 
 @cashier_bp.route('/add_expense', methods=['POST'])
 @login_required
@@ -246,8 +246,8 @@ def pay(order_id):
             tipo = 'Delivery' if order.order_type == 'delivery' else 'Para Llevar'
             msg = f'¡Cobro exitoso! Se generó la {invoice_type.capitalize()} {doc_number} para la orden tipo {tipo}.'
         flash(msg, 'success')
-        # UX FIx: Redirigimos directamente al Ticket para imprimir, en lugar de perder el control de la cuenta
-        return redirect(url_for('cashier.ticket', order_id=order.id))
+        # UX: Redirigir al POS y abrir el ticket como ventana emergente automática
+        return redirect(url_for('cashier.pos', popup_ticket=order.id))
         
         
     except Exception as e:

@@ -233,7 +233,7 @@
                     
                     {% if order.status != 'cancelled' %}
                     <div class="d-flex gap-2 mb-2">
-                        <a href="{{ url_for('orders.comanda', order_id=order.id) }}" target="_blank" class="btn btn-light flex-grow-1 fw-bold" style="border-radius:12px; font-size:0.8rem;"><i class="bi bi-printer me-1"></i> Ticket</a>
+                        <button type="button" onclick="window.open('{{ url_for('orders.comanda', order_id=order.id) }}', 'comanda', 'width=400,height=600,scrollbars=yes,resizable=yes')" class="btn btn-light flex-grow-1 fw-bold" style="border-radius:12px; font-size:0.8rem;"><i class="bi bi-printer me-1"></i> Ticket</button>
                         <button type="button" class="btn btn-outline-danger btn-sm fw-bold" style="border-radius:11px;" data-bs-toggle="modal" data-bs-target="#cancelOrderModal"><i class="bi bi-slash-circle"></i></button>
                     </div>
                     {% endif %}

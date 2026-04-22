@@ -94,9 +94,9 @@
                             <i class="bi bi-eye-fill"></i>
                         </a>
                         {% if o.status == 'paid' %}
-                        <a href="{{ url_for('cashier.ticket', order_id=o.id) }}" target="_blank" class="btn-action-dots text-white shadow-sm" style="background: #4318ff; text-decoration: none;" title="Imprimir Ticket">
+                        <button onclick="window.open('{{ url_for('cashier.ticket', order_id=o.id) }}', 'ticket_venta', 'width=420,height=650,scrollbars=yes,resizable=yes')" class="btn-action-dots text-white shadow-sm" style="background: #4318ff; border:none; cursor:pointer;" title="Imprimir Ticket">
                             <i class="bi bi-printer-fill"></i>
-                        </a>
+                        </button>
                         {% endif %}
                     </div>
                 </td>

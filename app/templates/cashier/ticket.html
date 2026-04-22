@@ -24,7 +24,7 @@
 </head>
 <body>
     <div class="no-print">
-        <a href="{{ url_for('cashier.pos') }}" class="btn-back">⬅ Volver a Caja / Escanear Siguiente</a>
+        <button onclick="if(window.opener){window.close()}else{location.href='{{ url_for('cashier.pos') }}'}" class="btn-back" style="border:none; cursor:pointer;">⬅ Volver a Caja / Escanear Siguiente</button>
     </div>
 
     <div class="text-center mb-1">
@@ -104,7 +104,16 @@
     </div>
 
     <script>
-        window.onload = function() { window.print(); }
+        // Detectar si estamos en un popup
+        var isPopup = window.opener !== null;
+        
+        window.onload = function() { 
+            window.print();
+            // Si es popup, cerrar automáticamente después de imprimir
+            if (isPopup) {
+                setTimeout(function() { window.close(); }, 500);
+            }
+        }
     </script>
 </body>
 </html>
