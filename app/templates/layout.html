@@ -60,7 +60,6 @@
                         {% endfor %}
                         <li>
                             <form method="POST" action="{{ url_for('orders.read_notifications') }}">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="dropdown-item text-center text-info fw-bold py-2 border-0 bg-transparent w-100">
                                     <i class="bi bi-check2-all me-1"></i>Marcar como leídas
@@ -238,7 +237,6 @@
                                 {% endfor %}
                                 <li>
                                     <form method="POST" action="{{ url_for('orders.read_notifications') }}">
-                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <button type="submit" class="dropdown-item text-center text-info fw-bold py-2 border-0 bg-transparent w-100">
                                             <i class="bi bi-check2-all me-1"></i>Marcar como leídas

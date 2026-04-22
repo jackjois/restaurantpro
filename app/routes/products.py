@@ -145,9 +145,14 @@ def edit(id):
                 logging.getLogger(__name__).exception('Error subiendo imagen de producto')
                 flash('Error al subir la imagen. Intenta nuevamente.', 'danger')
             
-        db.session.commit()
-        
-        flash('Producto actualizado correctamente.', 'success')
+        try:
+            db.session.commit()
+            flash('Producto actualizado correctamente.', 'success')
+        except Exception as e:
+            db.session.rollback()
+            import logging
+            logging.getLogger(__name__).exception('Error actualizando producto %s', id)
+            flash('Error al actualizar el producto. Intenta nuevamente.', 'danger')
         return redirect(url_for('products.index'))
         
     categories = Category.query.all()

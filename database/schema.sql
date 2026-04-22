@@ -277,7 +277,8 @@ BEGIN
   DELETE FROM public.app_signals WHERE created_at < NOW() - INTERVAL '24 hours';
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+SET search_path = public;
 
 DROP TRIGGER IF EXISTS trg_clean_old_signals ON public.app_signals;
 CREATE TRIGGER trg_clean_old_signals
