@@ -98,6 +98,7 @@
                             <li><hr class="dropdown-divider opacity-10"></li>
                             <li>
                                 <form action="{{ url_for('tables.delete', id=t.id) }}" method="POST" class="m-0" onsubmit="return confirm('¿Desmantelar esta mesa del sistema?');">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                     <button type="submit" class="dropdown-item fw-bold py-2 text-danger">
                                         <i class="bi bi-trash-fill me-2"></i> Eliminar Mesa
                                     </button>
@@ -148,6 +149,7 @@
                 <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
                         <form action="{{ url_for('tables.edit', id=t.id) }}" method="POST">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                             <div class="modal-header border-0 bg-light pb-0 pt-4 px-4" style="border-radius: 20px 20px 0 0;">
                                 <h4 class="modal-title fw-bold"><i class="bi bi-sliders me-2 text-primary"></i>Configurar Mesa</h4>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -192,6 +194,7 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
             <form action="{{ url_for('tables.create') }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="modal-header border-0 bg-light pb-0 pt-4 px-4" style="border-radius: 20px 20px 0 0;">
                     <h4 class="modal-title fw-bold"><i class="bi bi-grid-3x3-gap-fill me-2 text-primary"></i>Añadir Interfaz Física</h4>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>

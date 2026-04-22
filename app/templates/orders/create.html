@@ -94,6 +94,7 @@
             </div>
             <div class="card-body d-flex flex-column">
                 <form id="orderForm" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <div class="mb-3">
                         <label class="form-label">Mesa *</label>
                         <select class="form-select" name="table_id" required>

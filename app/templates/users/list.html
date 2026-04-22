@@ -97,6 +97,7 @@
                             <li><hr class="dropdown-divider opacity-10"></li>
                             <li>
                                 <form action="{{ url_for('users.delete', id=u.id) }}" method="POST" class="m-0" onsubmit="return confirm('¿Retirar privilegios y eliminar a este usuario permanentemente?');">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                     <button type="submit" class="dropdown-item fw-bold py-2 text-danger">
                                         <i class="bi bi-person-x-fill me-2"></i> Eliminar Registro
                                     </button>
@@ -113,6 +114,7 @@
                 <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
                         <form action="{{ url_for('users.edit', id=u.id) }}" method="POST">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                             <div class="modal-header border-0 bg-light pb-0 pt-4 px-4" style="border-radius: 20px 20px 0 0;">
                                 <h4 class="modal-title fw-bold"><i class="bi bi-person-gear me-2 text-primary"></i>Perfíl de {{ u.username }}</h4>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -167,6 +169,7 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
             <form action="{{ url_for('users.create') }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="modal-header border-0 bg-light pb-0 pt-4 px-4" style="border-radius: 20px 20px 0 0;">
                     <h4 class="modal-title fw-bold"><i class="bi bi-person-plus-fill me-2 text-primary"></i>Registrar Empleado</h4>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>

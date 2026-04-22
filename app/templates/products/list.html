@@ -79,6 +79,7 @@
                         </li>
                         <li>
                             <form action="{{ url_for('products.delete', id=p.id) }}" method="POST" class="m-0" onsubmit="return confirm('¿Estás seguro de eliminar este producto?');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                 <button type="submit" class="dropdown-item fw-bold py-2 text-danger">
                                     <i class="bi bi-trash-fill me-2"></i> Eliminar
                                 </button>
@@ -151,6 +152,7 @@
             </div>
             <div class="modal-body p-4 pt-0">
                 <form action="{{ url_for('products.create') }}" method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <div class="row g-3">
                         <div class="col-md-5">
                             <label class="form-label fw-bold">Nombre del Producto</label>
@@ -217,6 +219,7 @@
             </div>
             <div class="modal-body p-4 pt-0">
                 <form action="{{ url_for('products.edit', id=p.id) }}" method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <div class="row g-3">
                         <div class="col-md-5">
                             <label class="form-label fw-bold">Nombre del Producto</label>

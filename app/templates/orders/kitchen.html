@@ -208,12 +208,14 @@
 
                 {% if item.status == 'pending' %}
                 <form action="{{ url_for('orders.update_item_status', item_id=item.id) }}" method="POST" class="m-0">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <input type="hidden" name="status" value="preparing">
                     <button type="submit" class="kds-btn kds-btn-prepare w-100"><i
                             class="bi {{ btn_icono }} me-2"></i>{{ btn_accion }}</button>
                 </form>
                 {% elif item.status == 'preparing' %}
                 <form action="{{ url_for('orders.update_item_status', item_id=item.id) }}" method="POST" class="m-0">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <input type="hidden" name="status" value="ready">
                     <button type="submit" class="kds-btn kds-btn-ready w-100"><i class="bi bi-check2-circle me-2"></i>{{
                         btn_listo }}</button>

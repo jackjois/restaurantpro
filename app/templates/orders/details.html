@@ -264,6 +264,7 @@
                                         
                                         {% if item.status in ['pending', 'preparing'] and order.status != 'paid' %}
                                         <form action="{{ url_for('orders.remove_item', item_id=item.id) }}" method="POST" class="d-inline ms-1" onsubmit="return confirm('¿Quitar del pedido?');">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                             <button type="submit" class="p-0 border-0 bg-transparent text-danger"><i class="bi bi-x-circle-fill"></i></button>
                                         </form>
                                         {% endif %}
@@ -310,6 +311,7 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content" style="border-radius:20px; border:none; box-shadow:0 20px 40px rgba(0,0,0,0.2);">
             <form action="{{ url_for('orders.cancel', id=order.id) }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="modal-header border-0 pb-0 mt-2">
                     <h4 class="modal-title fw-bold text-danger"><i class="bi bi-exclamation-triangle-fill me-2"></i>Anular Pedido</h4>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -345,6 +347,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form action="{{ url_for('orders.add_item', id=order.id) }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="modal-body px-4 py-4">
                     <input type="hidden" name="product_id" value="{{ p.id }}">
                     <div class="row align-items-center mb-4">

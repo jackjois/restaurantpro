@@ -33,6 +33,7 @@
         <div class="card shadow-sm border-0">
             <div class="card-body p-4">
                 <form action="{{ url_for('cashier.pay', order_id=order.id) }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <input type="hidden" name="amount" value="{{ order.total_amount }}">
                     
                     <h5 class="fw-bold mb-3 border-bottom pb-2">Método de Pago</h5>
