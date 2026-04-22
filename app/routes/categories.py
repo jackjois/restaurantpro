@@ -4,6 +4,9 @@ from app.utils.decorators import role_required
 from app.models.category import Category
 from app import db
 from sqlalchemy.exc import IntegrityError
+import logging
+
+logger = logging.getLogger(__name__)
 
 categories_bp = Blueprint('categories', __name__, url_prefix='/categories')
 
@@ -72,8 +75,7 @@ def delete(id):
         flash('¡Operación denegada! No puedes eliminar esta categoría porque ya tiene Productos asignados. Por favor remueve los productos asociados primero para evitar inconsistencias en la base de datos.', 'danger')
     except Exception as e:
         db.session.rollback()
-        import logging
-        logging.getLogger(__name__).exception('Error eliminando categoría %s', id)
+        logger.exception('Error eliminando categoría %s', id)
         flash('No se pudo eliminar la categoría. Intenta nuevamente.', 'danger')
         
     return redirect(url_for('categories.index'))

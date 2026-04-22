@@ -7,6 +7,9 @@ from app.models.setting import Setting
 from app import db
 from app.utils.supabase_client import get_supabase
 from app.utils.decorators import role_required
+import logging
+
+logger = logging.getLogger(__name__)
 
 settings_bp = Blueprint('settings', __name__, url_prefix='/settings')
 
@@ -56,8 +59,7 @@ def index():
                     public_url = get_supabase().storage.from_('restaurant_assets').get_public_url(new_filename)
                     setting.logo_url = public_url
                 except Exception as e:
-                    import logging
-                    logging.getLogger(__name__).exception('Error subiendo logo a Supabase')
+                    logger.exception('Error subiendo logo a Supabase')
                     flash('Error al subir el logo. Intenta nuevamente.', 'danger')
 
         db.session.commit()
