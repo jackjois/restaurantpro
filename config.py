@@ -37,21 +37,14 @@ class Config:
     is_production = bool(os.environ.get("VERCEL"))
     
     ssl_ctx = ssl.create_default_context()
+    allow_insecure_db_ssl = os.environ.get("ALLOW_INSECURE_DB_SSL", "").lower() in ("1", "true", "yes", "on")
     
-    # SEGURIDAD SSL — Documentación de Riesgo
-    # ─────────────────────────────────────────────────────────────────────
-    # El pooler de transacciones de Supabase (puerto 6543) presenta certificados
-    # que NO se validan con los CA bundles estándar en entornos serverless
-    # (Vercel/AWS Lambda), causando ssl.SSLCertVerificationError → HTTP 500.
-    #
-    # RIESGO: CERT_NONE desactiva la verificación SSL, permitiendo ataques MITM.
-    # MITIGACIÓN: La conexión viaja sobre infraestructura interna de AWS
-    #             (Supabase ↔ Vercel) con cifrado TLS activo en tránsito.
-    # TODO: Configurar certificado CA raíz de Supabase explícitamente
-    #       para habilitar CERT_REQUIRED en producción.
-    # ─────────────────────────────────────────────────────────────────────
-    ssl_ctx.check_hostname = False
-    ssl_ctx.verify_mode = ssl.CERT_NONE
+    # Seguridad TLS:
+    # - Por defecto, exigimos validación completa del certificado (CERT_REQUIRED).
+    # - Solo permitir modo inseguro mediante variable explícita para entornos de debug.
+    if allow_insecure_db_ssl:
+        ssl_ctx.check_hostname = False
+        ssl_ctx.verify_mode = ssl.CERT_NONE
 
     if is_production:
         from sqlalchemy.pool import NullPool

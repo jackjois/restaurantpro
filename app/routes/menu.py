@@ -129,7 +129,7 @@ def place_order(qr_code):
         user_id=None
     )
 
-    db.session.commit()
     AppSignal.emit('digital_menu_order', 'orders')
+    db.session.commit()
 
     return jsonify({'success': True, 'message': 'Pedido enviado a cocina'})

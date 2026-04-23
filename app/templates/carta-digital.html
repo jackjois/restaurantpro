@@ -163,6 +163,16 @@
 
         let carrito = [];
 
+        function escapeHtml(value) {
+            const str = String(value ?? '');
+            return str
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
         function renderMenu(filtrados) {
             const grid = document.getElementById('menu-grid');
             grid.innerHTML = '';
@@ -172,16 +182,20 @@
             }
             
             filtrados.forEach(item => {
-                let imgTag = item.imagen ? 
-                    `<img src="${item.imagen}" class="w-full h-full object-cover">` : 
+                const safeNombre = escapeHtml(item.nombre);
+                const safeDescripcion = escapeHtml(item.descripcion);
+                const safeImagen = item.imagen ? encodeURI(item.imagen) : null;
+
+                let imgTag = safeImagen ?
+                    `<img src="${safeImagen}" class="w-full h-full object-cover" alt="${safeNombre}">` :
                     `<div class="w-full h-full bg-gray-100 flex items-center justify-center text-3xl opacity-50">🍽️</div>`;
 
                 // UberEats Layout Style (Horizontal Card)
                 grid.innerHTML += `
                 <div class="product-list-card bg-white rounded-[20px] p-4 flex items-center gap-4 shadow-sm border border-gray-100" onclick="agregarAlCarrito(${item.id})">
                     <div class="flex-1 min-w-0 py-1">
-                        <h3 class="font-bold text-[1.1rem] leading-tight text-gray-900 mb-1 truncate">${item.nombre}</h3>
-                        <p class="text-gray-500 text-xs line-clamp-2 leading-snug mb-2 pr-2">${item.descripcion}</p>
+                        <h3 class="font-bold text-[1.1rem] leading-tight text-gray-900 mb-1 truncate">${safeNombre}</h3>
+                        <p class="text-gray-500 text-xs line-clamp-2 leading-snug mb-2 pr-2">${safeDescripcion}</p>
                         <span class="font-extrabold text-[1.05rem] text-gray-900">S/ ${item.precio.toFixed(2)}</span>
                     </div>
                     
@@ -273,8 +287,10 @@
                 const sub = item.precio * item.cantidad;
                 total += sub;
                 
-                let imgTag = item.imagen ? 
-                    `<img src="${item.imagen}" class="w-16 h-16 rounded-xl object-cover shadow-sm">` : 
+                const safeNombre = escapeHtml(item.nombre);
+                const safeImagen = item.imagen ? encodeURI(item.imagen) : null;
+                let imgTag = safeImagen ?
+                    `<img src="${safeImagen}" class="w-16 h-16 rounded-xl object-cover shadow-sm" alt="${safeNombre}">` :
                     `<div class="w-16 h-16 rounded-xl bg-gray-200 flex justify-center items-center text-xl">🍽️</div>`;
 
                 cont.innerHTML += `
@@ -283,7 +299,7 @@
                         ${imgTag}
                     </div>
                     <div class="flex-1">
-                        <h4 class="font-bold text-sm leading-tight text-gray-900 mb-1">${item.nombre}</h4>
+                        <h4 class="font-bold text-sm leading-tight text-gray-900 mb-1">${safeNombre}</h4>
                         <span class="font-extrabold text-[1rem]">S/ ${sub.toFixed(2)}</span>
                     </div>
                     <div class="flex items-center gap-2 bg-gray-100 rounded-full px-1 py-1">

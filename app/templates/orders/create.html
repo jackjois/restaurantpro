@@ -143,6 +143,16 @@
 <script>
     let orderItems = [];
     let total = 0;
+
+    function escapeHtml(value) {
+        const str = String(value ?? '');
+        return str
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
     
     // Filtrar por categoría
     document.querySelectorAll('.category-filter').forEach(filter => {
@@ -224,12 +234,14 @@
             orderItems.forEach((item, index) => {
                 const subtotal = item.price * item.quantity;
                 total += subtotal;
+                const safeName = escapeHtml(item.name);
+                const safeNotes = escapeHtml(item.notes);
                 
                 html += `
                     <div class="order-item">
                         <div class="d-flex justify-content-between align-items-start mb-2">
                             <div>
-                                <strong>${item.name}</strong>
+                                <strong>${safeName}</strong>
                                 <div class="text-primary">${formatCurrency(item.price)} c/u</div>
                             </div>
                             <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeItem(${index})">
@@ -254,7 +266,7 @@
                 hiddenHtml += `
                     <input type="hidden" name="product_id[]" value="${item.id}">
                     <input type="hidden" name="quantity[]" value="${item.quantity}">
-                    <input type="hidden" name="notes_item[]" value="${item.notes}">
+                    <input type="hidden" name="notes_item[]" value="${safeNotes}">
                 `;
             });
             

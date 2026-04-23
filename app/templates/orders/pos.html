@@ -222,6 +222,16 @@
 <script>
     let carrito = [];
 
+    function escapeHtml(value) {
+        const str = String(value ?? '');
+        return str
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
     // --- LÓGICA DE FILTROS ---
     function filtrar(categoriaId) {
         document.querySelectorAll('.category-pill').forEach(el => el.classList.remove('active'));
@@ -302,12 +312,14 @@
             const subtotal = item.precio * item.cantidad;
             total += subtotal;
             
+            const safeNombre = escapeHtml(item.nombre);
+            const safeNotas = escapeHtml(item.notas || '');
             htmlItems += `
             <div class="cart-item shadow-sm">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
-                        <span class="fw-bold text-dark lh-sm" style="font-size:0.95rem;">${item.nombre}</span>
-                        ${item.notas ? '<br><small class="text-danger fw-bold" style="font-size: 0.8rem"><i class="bi bi-exclamation-triangle-fill"></i> ' + item.notas + '</small>' : ''}
+                        <span class="fw-bold text-dark lh-sm" style="font-size:0.95rem;">${safeNombre}</span>
+                        ${safeNotas ? '<br><small class="text-danger fw-bold" style="font-size: 0.8rem"><i class="bi bi-exclamation-triangle-fill"></i> ' + safeNotas + '</small>' : ''}
                     </div>
                     <span class="text-danger fw-bold">S/ ${subtotal.toFixed(2)}</span>
                 </div>
