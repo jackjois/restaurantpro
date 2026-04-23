@@ -261,12 +261,26 @@ DECLARE t TEXT;
 BEGIN
   FOR t IN SELECT unnest(ARRAY['categories','users','settings','tables','products','orders','order_items','cash_sessions','cash_expenses','payments','invoices','notifications','audit_logs','app_signals'])
   LOOP
-    EXECUTE format('CREATE POLICY IF NOT EXISTS service_role_full_access ON public.%I FOR ALL TO postgres USING (true) WITH CHECK (true)', t);
+    -- Postgres no soporta "CREATE POLICY IF NOT EXISTS", así que lo hacemos idempotente vía pg_policies.
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_policies p
+      WHERE p.schemaname='public' AND p.tablename=t AND p.policyname='service_role_full_access'
+    ) THEN
+      EXECUTE format('CREATE POLICY service_role_full_access ON public.%I FOR ALL TO postgres USING (true) WITH CHECK (true)', t);
+    END IF;
   END LOOP;
 END $$;
 
 -- Política: anon solo puede leer app_signals (para Supabase Realtime)
-CREATE POLICY IF NOT EXISTS anon_read_signals ON public.app_signals FOR SELECT TO anon USING (true);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies p
+    WHERE p.schemaname='public' AND p.tablename='app_signals' AND p.policyname='anon_read_signals'
+  ) THEN
+    EXECUTE 'CREATE POLICY anon_read_signals ON public.app_signals FOR SELECT TO anon USING (true)';
+  END IF;
+END $$;
 
 -- --------------------------------------------------------
 -- TRIGGER: Auto-limpieza de app_signals (mantener 24h)

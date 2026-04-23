@@ -10,8 +10,12 @@ def role_required(*roles):
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
-            # Verificamos si está logueado y si su rol está en la lista permitida
-            if not current_user.is_authenticated or current_user.role not in roles:
+            # Verificamos autenticación antes de leer current_user.role (evita fallos con AnonymousUser)
+            if not current_user.is_authenticated:
+                return redirect(url_for('auth.login'))
+
+            # Verificamos si su rol está en la lista permitida
+            if current_user.role not in roles:
                 flash('Acceso denegado. No tienes los permisos necesarios para ver esta sección.', 'danger')
                 # Si no tiene permiso, lo devolvemos a una ruta segura (ej. historial de pedidos o monitor)
                 if current_user.role == 'waiter':

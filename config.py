@@ -20,8 +20,9 @@ class Config:
     REMEMBER_COOKIE_DURATION = 2592000  # 30 días en segundos
     
     # En producción (Vercel/HTTPS), las cookies deben ser Secure
-    SESSION_COOKIE_SECURE = os.environ.get('VERCEL', False) != False
-    REMEMBER_COOKIE_SECURE = os.environ.get('VERCEL', False) != False
+    _is_vercel = bool(os.environ.get("VERCEL"))
+    SESSION_COOKIE_SECURE = _is_vercel
+    REMEMBER_COOKIE_SECURE = _is_vercel
     
     # Configuración de la base de datos (PostgreSQL en Supabase vía pg8000)
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
@@ -33,7 +34,7 @@ class Config:
             
     import ssl
     
-    is_production = os.environ.get('VERCEL') is not None and os.environ.get('VERCEL') != False
+    is_production = bool(os.environ.get("VERCEL"))
     
     ssl_ctx = ssl.create_default_context()
     

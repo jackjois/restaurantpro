@@ -197,6 +197,12 @@ def create_external():
 @login_required
 def details(id):
     order = Order.query.get_or_404(id)
+    # Protección de datos: el chef trabaja en /kitchen, y los pedidos externos (sin mesa)
+    # pueden contener datos de cliente; por defecto evitamos que 'waiter' los vea.
+    if current_user.role == 'chef':
+        abort(403)
+    if current_user.role == 'waiter' and order.table_id is None:
+        abort(403)
     products = Product.query.filter_by(is_available=True).all()
     categories = Category.query.all()
     
