@@ -57,10 +57,11 @@ def create_app(config_class=Config):
         from flask_login import current_user
         from app.models.notification import Notification
         
-        # Obtenemos las vars de Entorno de Supabase (la ANON es pública y segura de exponer en HTML/JS).
-        # Para compatibilidad, si no existe SUPABASE_ANON_KEY, cae a SUPABASE_KEY.
+        # Obtenemos las vars de Entorno de Supabase.
+        # IMPORTANTE: solo la ANON key es segura para exponer en HTML/JS.
+        # Nunca hacer fallback a SUPABASE_KEY (service role) en frontend.
         supa_url = os.environ.get("SUPABASE_URL", "")
-        supa_key = os.environ.get("SUPABASE_ANON_KEY", "") or os.environ.get("SUPABASE_KEY", "")
+        supa_key = os.environ.get("SUPABASE_ANON_KEY", "")
         
         if current_user.is_authenticated:
             try:
