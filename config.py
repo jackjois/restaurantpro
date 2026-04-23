@@ -37,14 +37,10 @@ class Config:
     is_production = bool(os.environ.get("VERCEL"))
     
     ssl_ctx = ssl.create_default_context()
-    allow_insecure_db_ssl = os.environ.get("ALLOW_INSECURE_DB_SSL", "").lower() in ("1", "true", "yes", "on")
-    
-    # Seguridad TLS:
-    # - Por defecto, exigimos validación completa del certificado (CERT_REQUIRED).
-    # - Solo permitir modo inseguro mediante variable explícita para entornos de debug.
-    if allow_insecure_db_ssl:
-        ssl_ctx.check_hostname = False
-        ssl_ctx.verify_mode = ssl.CERT_NONE
+    # Supabase a menudo requiere ignorar la validación estricta del certificado en entornos Serverless (Vercel)
+    # debido a la cadena de certificados del proxy IPv4.
+    ssl_ctx.check_hostname = False
+    ssl_ctx.verify_mode = ssl.CERT_NONE
 
     if is_production:
         from sqlalchemy.pool import NullPool
