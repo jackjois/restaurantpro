@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, jsonify
+from flask import Blueprint, render_template, request, jsonify, url_for
 from app.models.table import Table
 from app.models.product import Product
 from app.models.category import Category
@@ -23,8 +23,30 @@ def view_menu(qr_code):
     table = Table.query.filter_by(qr_code=qr_code).first_or_404()
     categories = Category.query.filter_by(is_active=True).all()
     products = Product.query.filter_by(is_available=True).all()
-    
-    return render_template('carta-digital.html', table=table, categories=categories, products=products)
+
+    # Pre-serializar para frontend y evitar construir JSON manual inseguro en template.
+    menu_items = []
+    for p in products:
+        menu_items.append({
+            'id': p.id,
+            'categoria': f'cat_{p.category_id}',
+            'nombre': p.name,
+            'descripcion': p.description or '',
+            'precio': float(p.price or 0),
+            'imagen': (
+                p.image_url
+                if p.image_url and (p.image_url.startswith('http://') or p.image_url.startswith('https://'))
+                else (url_for('static', filename='uploads/products/' + p.image_url) if p.image_url else None)
+            )
+        })
+
+    return render_template(
+        'carta-digital.html',
+        table=table,
+        categories=categories,
+        products=products,
+        menu_items=menu_items
+    )
 
 # 2. RUTA PARA RECIBIR EL PEDIDO DESDE EL CELULAR DEL CLIENTE
 @csrf.exempt  # API JSON pública, no usa sesiones de Flask

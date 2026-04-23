@@ -227,7 +227,7 @@
 <script>
     function imprimirQR(numeroMesa, imgId) {
         const imgSrc = document.getElementById(imgId).src;
-        const nombreRestaurante = "{{ restaurant.name if restaurant else 'Nuestro Restaurante' }}";
+        const nombreRestaurante = {{ (restaurant.name if restaurant else 'Nuestro Restaurante') | tojson }};
         const printWindow = window.open('', '_blank');
         
         printWindow.document.write(`

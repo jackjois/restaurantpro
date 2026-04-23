@@ -159,7 +159,13 @@
             <div class="row g-3" id="posGrid">
                 {% for p in products %}
                 <div class="col-6 col-md-4 col-lg-3 product-item" data-name="{{ p.name | lower }}" data-cat="cat_{{ p.category_id }}">
-                    <div class="pos-product-card" onclick="agregarAlCarrito({{ p.id }}, '{{ p.name | replace('\'', '\\\'') }}', {{ p.price }})">
+                    <div
+                        class="pos-product-card"
+                        data-id="{{ p.id }}"
+                        data-name="{{ p.name }}"
+                        data-price="{{ p.price }}"
+                        onclick="agregarDesdeCard(this)"
+                    >
                         <div class="pos-img-wrapper">
                             {% if p.image_url %}
                                 <img src="{{ p.image_url | resolve_url }}" alt="{{ p.name }}">
@@ -269,6 +275,13 @@
     }
 
     // --- LÓGICA DEL CARRITO (PERSISTENCIA DIFERIDA) ---
+    function agregarDesdeCard(cardEl) {
+        const id = Number(cardEl.dataset.id);
+        const nombre = cardEl.dataset.name || '';
+        const precio = Number(cardEl.dataset.price || 0);
+        agregarAlCarrito(id, nombre, precio);
+    }
+
     function agregarAlCarrito(id, nombre, precio) {
         const existe = carrito.find(i => i.id === id);
         if(existe) {
