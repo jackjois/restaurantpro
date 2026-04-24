@@ -151,14 +151,19 @@
                 <!-- Actions -->
                 <div class="sidebar-actions">
                     <button class="btn-checkout" id="btnCheckout" disabled>
-                        <i class="bi bi-bag-check"></i> Checkout · <span id="btnCheckoutAmount">S/ 0.00</span>
+                        <i class="bi bi-bag-check"></i> Cobrar · <span id="btnCheckoutAmount">S/ 0.00</span>
                     </button>
                     <div class="sidebar-btns-row">
                         <button class="btn-secondary-floor" id="btnKOT" disabled>
-                            <i class="bi bi-printer"></i> Enviar KOT
+                            <i class="bi bi-printer"></i> Enviar a Cocina
                         </button>
                         <button class="btn-secondary-floor" id="btnSplit" title="Separar items a una nueva cuenta">
-                            <i class="bi bi-scissors"></i> Split Bill
+                            <i class="bi bi-scissors"></i> Dividir Cuenta
+                        </button>
+                    </div>
+                    <div style="margin-top: 8px;">
+                        <button class="btn-secondary-floor" id="btnCancelOrder" style="width: 100%; color: var(--f-danger); border-color: rgba(239,68,68,0.2);" disabled>
+                            <i class="bi bi-x-circle"></i> Cancelar Pedido
                         </button>
                     </div>
                 </div>
@@ -466,6 +471,7 @@
                     document.getElementById('btnCheckout').disabled = true;
                     document.getElementById('btnKOT').disabled = true;
                     document.getElementById('btnSplit').disabled = true;
+                    document.getElementById('btnCancelOrder').disabled = true;
                     return;
                 }
                 const o = selectedOrder;
@@ -481,6 +487,7 @@
                 document.getElementById('btnCheckout').disabled = !hasItems;
                 document.getElementById('btnKOT').disabled = !hasItems;
                 document.getElementById('btnSplit').disabled = !hasItems;
+                document.getElementById('btnCancelOrder').disabled = false;
             }
 
             // ── Menu Tabs ──
@@ -659,6 +666,25 @@
                     renderSidebarItems();
                     toast(`KOT enviado: ${res.sent_count} item(s) a cocina`, 'success');
                 } else { toast(res.error || 'Error', 'error'); }
+            });
+
+            document.getElementById('btnCancelOrder').addEventListener('click', async () => {
+                if (!selectedOrder) return;
+                if(!confirm('¿Estás seguro que deseas cancelar este pedido por completo? Todos los items serán eliminados y la mesa quedará libre.')) return;
+                try {
+                    const res = await apiPost(`/order/${selectedOrder.id}/cancel`);
+                    if (res.success) {
+                        toast('Pedido cancelado correctamente', 'success');
+                        selectedOrder = null;
+                        clearSidebar();
+                        fetchStatus();
+                    } else {
+                        toast(res.error || 'Error al cancelar el pedido', 'error');
+                    }
+                } catch(e) {
+                    console.error(e);
+                    toast('Error de red', 'error');
+                }
             });
 
             // ── Modals & Drawers Utils ──

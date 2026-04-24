@@ -411,6 +411,44 @@ def api_update_order(order_id):
 
 
 # ───────────────────────────────────────────────
+# API: Cancelar orden completa
+# ───────────────────────────────────────────────
+
+@floor_bp.route('/api/order/<int:order_id>/cancel', methods=['POST'])
+@login_required
+@role_required('admin', 'cashier', 'waiter')
+def api_cancel_order(order_id):
+    """Cancela una orden completa y libera la mesa."""
+    order = db.session.get(Order, order_id, with_for_update=True)
+    if not order:
+        return jsonify({'success': False, 'error': 'Orden no encontrada.'}), 404
+    if order.status in ['paid', 'cancelled']:
+        return jsonify({'success': False, 'error': 'La orden ya está cerrada o cancelada.'}), 400
+
+    try:
+        # Devolver stock de los items que controlan stock
+        for item in order.items:
+            if item.product and item.product.track_stock:
+                item.product.stock += item.quantity
+
+        order.status = 'cancelled'
+        order.notes = (order.notes or '') + ' [Cancelada manualmente]'
+        
+        # Liberar la mesa
+        if order.table_rel:
+            order.table_rel.status = 'free'
+
+        db.session.commit()
+        AppSignal.emit('floor_order_cancelled', 'orders')
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        db.session.rollback()
+        logger.exception('Error cancelando orden %s', order_id)
+        return jsonify({'success': False, 'error': 'Error interno al cancelar la orden.'}), 500
+
+
+# ───────────────────────────────────────────────
 # API: Cambiar status de mesa (right-click)
 # ───────────────────────────────────────────────
 
