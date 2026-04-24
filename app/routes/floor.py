@@ -131,20 +131,29 @@ def api_status():
     total_tables = len(tables)
     occupancy_pct = round((occupied_count / total_tables * 100)) if total_tables > 0 else 0
 
-    # Reservaciones del día
-    reservations_today = Reservation.query.filter(
+    # Reservaciones pendientes (desde hoy en adelante)
+    reservations_pending = Reservation.query.filter(
         Reservation.reservation_time >= today_start_utc,
-        Reservation.reservation_time < tomorrow_start_utc,
         Reservation.status != 'cancelled'
     ).order_by(Reservation.reservation_time).all()
     
     reservations_data = []
-    for r in reservations_today:
+    for r in reservations_pending:
+        res_time_local = r.reservation_time.astimezone(PERU_TZ)
+        time_str = res_time_local.strftime('%I:%M %p')
+        
+        # Si no es hoy, agregamos la fecha
+        if res_time_local.date() != now_peru.date():
+            # Traducir mes simple
+            meses = {1:'Ene',2:'Feb',3:'Mar',4:'Abr',5:'May',6:'Jun',7:'Jul',8:'Ago',9:'Sep',10:'Oct',11:'Nov',12:'Dic'}
+            fecha_str = f"{res_time_local.day} {meses[res_time_local.month]}"
+            time_str = f"{fecha_str} - {time_str}"
+            
         reservations_data.append({
             'id': r.id,
             'table_number': r.table.number if r.table else '-',
             'customer_name': r.customer_name,
-            'time': r.reservation_time.astimezone(PERU_TZ).strftime('%I:%M %p'),
+            'time': time_str,
             'guests': r.guest_count,
             'status': r.status
         })
@@ -516,6 +525,32 @@ def api_create_reservation():
         db.session.rollback()
         logger.exception('Error creando reservación')
         return jsonify({'success': False, 'error': 'Error al crear la reservación. Verifique el formato de fecha.'}), 500
+
+
+@floor_bp.route('/api/reservation/<int:res_id>/cancel', methods=['POST'])
+@login_required
+@role_required('admin', 'cashier')
+def api_cancel_reservation(res_id):
+    """Cancela una reservación."""
+    reservation = db.session.get(Reservation, res_id, with_for_update=True)
+    if not reservation:
+        return jsonify({'success': False, 'error': 'Reservación no encontrada.'}), 404
+
+    try:
+        reservation.status = 'cancelled'
+        
+        # Si la mesa está marcada como reservada, la liberamos
+        if reservation.table and reservation.table.status == 'reserved':
+            reservation.table.status = 'free'
+
+        db.session.commit()
+        AppSignal.emit('floor_reservation_cancelled', 'reservations')
+        return jsonify({'success': True})
+    except Exception as e:
+        db.session.rollback()
+        logger.exception('Error cancelando reservación')
+        return jsonify({'success': False, 'error': 'Error interno al cancelar la reservación.'}), 500
+
 
 
 # ───────────────────────────────────────────────
