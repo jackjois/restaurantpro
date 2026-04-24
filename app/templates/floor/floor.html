@@ -31,8 +31,12 @@
         <span class="kpi-label"><i class="bi bi-card-checklist"></i> Pedidos</span>
         <span class="kpi-value" id="kpiOrders">0</span>
     </div>
+    <div class="kpi-pill" id="kpiResBtn" style="cursor:pointer;" title="Ver Reservaciones">
+        <span class="kpi-label"><i class="bi bi-calendar-event"></i> Reservas</span>
+        <span class="kpi-value" id="kpiReservations">0</span>
+    </div>
     <div class="kpi-pill">
-        <span class="kpi-label"><i class="bi bi-box-seam"></i> Menú Activo</span>
+        <span class="kpi-label"><i class="bi bi-box-seam"></i> Menú</span>
         <span class="kpi-value" id="kpiMenu">0/0</span>
     </div>
 
@@ -136,7 +140,7 @@
                     <button class="btn-secondary-floor" id="btnKOT" disabled>
                         <i class="bi bi-printer"></i> Enviar KOT
                     </button>
-                    <button class="btn-secondary-floor" disabled title="Próximamente">
+                    <button class="btn-secondary-floor" id="btnSplit" title="Separar items a una nueva cuenta">
                         <i class="bi bi-scissors"></i> Split Bill
                     </button>
                 </div>
@@ -149,9 +153,86 @@
 <div class="ctx-menu" id="ctxMenu">
     <button class="ctx-item" data-status="free"><i class="bi bi-check-circle" style="color:var(--f-success)"></i> Marcar Libre</button>
     <button class="ctx-item" data-status="reserved"><i class="bi bi-bookmark" style="color:var(--f-info)"></i> Marcar Reservada</button>
+    <button class="ctx-item" id="ctxBtnReserve"><i class="bi bi-calendar-plus" style="color:var(--f-accent)"></i> Nueva Reserva</button>
     <button class="ctx-item" data-status="maintenance"><i class="bi bi-tools" style="color:var(--f-text-muted)"></i> Mantenimiento</button>
 </div>
+<!-- Reservations Drawer -->
+<div class="reservations-drawer" id="resDrawer">
+    <div class="drawer-header">
+        <div style="font-weight:700;"><i class="bi bi-calendar2-check me-2"></i> Reservas de Hoy</div>
+        <button class="btn-close-modal" id="btnCloseDrawer"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="drawer-body" id="resDrawerBody">
+        <!-- Rendered via JS -->
+    </div>
+</div>
 
+<!-- Reservation Modal -->
+<div class="floor-modal-backdrop" id="modalRes">
+    <div class="floor-modal">
+        <div class="floor-modal-header">
+            <div class="floor-modal-title">Nueva Reserva — Mesa <span id="resModalTableNum"></span></div>
+            <button class="btn-close-modal" onclick="closeModal('modalRes')"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <div class="floor-modal-body">
+            <form id="resForm" onsubmit="event.preventDefault(); submitReservation();">
+                <input type="hidden" id="resTableId">
+                <div class="floor-form-group">
+                    <label>Nombre del Cliente *</label>
+                    <input type="text" id="resName" class="floor-input" required placeholder="Ej. Juan Pérez">
+                </div>
+                <div class="floor-form-group">
+                    <label>Teléfono</label>
+                    <input type="text" id="resPhone" class="floor-input" placeholder="Ej. 999888777">
+                </div>
+                <div style="display:flex;gap:12px;">
+                    <div class="floor-form-group" style="flex:1;">
+                        <label>Fecha *</label>
+                        <input type="date" id="resDate" class="floor-input" required>
+                    </div>
+                    <div class="floor-form-group" style="flex:1;">
+                        <label>Hora *</label>
+                        <input type="time" id="resTime" class="floor-input" required>
+                    </div>
+                </div>
+                <div class="floor-form-group">
+                    <label>Nro. de Personas</label>
+                    <input type="number" id="resGuests" class="floor-input" value="1" min="1" required>
+                </div>
+                <div class="floor-form-group">
+                    <label>Notas Especiales</label>
+                    <input type="text" id="resNotes" class="floor-input" placeholder="Ej. Cerca a la ventana, Silla de bebé">
+                </div>
+            </form>
+        </div>
+        <div class="floor-modal-footer">
+            <button class="btn-floor btn-floor-cancel" onclick="closeModal('modalRes')">Cancelar</button>
+            <button class="btn-floor btn-floor-primary" onclick="submitReservation()">Guardar Reserva</button>
+        </div>
+    </div>
+</div>
+
+<!-- Split Bill Modal -->
+<div class="floor-modal-backdrop" id="modalSplit">
+    <div class="floor-modal">
+        <div class="floor-modal-header">
+            <div class="floor-modal-title">Split Bill — Separar Cuenta</div>
+            <button class="btn-close-modal" onclick="closeModal('modalSplit')"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <div class="floor-modal-body" style="padding:0;">
+            <div style="padding:16px 20px; background:var(--f-card); border-bottom:1px solid var(--f-border); font-size:0.85rem; color:var(--f-text-muted);">
+                Selecciona la cantidad de cada producto que deseas mover a una <strong>nueva cuenta separada</strong>.
+            </div>
+            <div id="splitItemsList" style="padding:0 20px;">
+                <!-- Rendered by JS -->
+            </div>
+        </div>
+        <div class="floor-modal-footer">
+            <button class="btn-floor btn-floor-cancel" onclick="closeModal('modalSplit')">Cancelar</button>
+            <button class="btn-floor btn-floor-primary" onclick="submitSplitBill()"><i class="bi bi-scissors"></i> Separar y Cobrar</button>
+        </div>
+    </div>
+</div>
 <!-- Toast -->
 <div class="floor-toast" id="floorToast"></div>
 
@@ -170,7 +251,7 @@
     const SUPABASE_KEY = "{{ supabase_key }}";
 
     // ── State ──
-    let state = { tables: [], categories: [], products: [], kpis: {} };
+    let state = { tables: [], categories: [], products: [], reservations: [], kpis: {} };
     let selectedTableId = null;
     let selectedOrder = null;
     let activeCategory = 'all';
@@ -188,6 +269,7 @@
     const $ctx = document.getElementById('ctxMenu');
     const $toast = document.getElementById('floorToast');
     const $search = document.getElementById('menuSearch');
+    const $resDrawer = document.getElementById('resDrawer');
 
     // ── Init ──
     fetchStatus();
@@ -228,6 +310,7 @@
         renderTables();
         renderMenuTabs();
         renderMenuGrid();
+        renderReservationsDrawer();
         if (selectedTableId) {
             const t = state.tables.find(t => t.id === selectedTableId);
             if (t) selectTable(t);
@@ -242,6 +325,9 @@
         document.getElementById('kpiOccupancy').textContent = `${k.occupancy_pct}%`;
         document.getElementById('kpiOrders').textContent = k.orders_today;
         document.getElementById('kpiMenu').textContent = `${k.menu_available}/${k.menu_total}`;
+        
+        const resCount = state.reservations ? state.reservations.length : 0;
+        document.getElementById('kpiReservations').textContent = resCount;
     }
 
     // ── Ticker ──
@@ -280,10 +366,8 @@
             });
             el.addEventListener('contextmenu', (e) => {
                 e.preventDefault();
-                ctxTableId = +el.dataset.id;
-                $ctx.style.left = e.clientX + 'px';
-                $ctx.style.top = e.clientY + 'px';
-                $ctx.classList.add('show');
+                const t = state.tables.find(x => x.id === +el.dataset.id);
+                if (t) showContextMenu(e, t);
             });
         });
     }
@@ -291,7 +375,6 @@
     // ── Table Click Handler ──
     async function onTableClick(table) {
         if (table.status === 'free') {
-            // Create order
             try {
                 const res = await apiPost(`/table/${table.id}/order`);
                 if (res.success) {
@@ -312,7 +395,6 @@
         selectedTableId = table.id;
         selectedOrder = table.active_order;
 
-        // Highlight
         $grid.querySelectorAll('.table-tile').forEach(el => el.classList.toggle('selected', +el.dataset.id === table.id));
 
         if (!selectedOrder) {
@@ -378,6 +460,7 @@
         const hasItems = o.items.length > 0;
         document.getElementById('btnCheckout').disabled = !hasItems;
         document.getElementById('btnKOT').disabled = !hasItems;
+        document.getElementById('btnSplit').disabled = !hasItems;
     }
 
     // ── Menu Tabs ──
@@ -435,7 +518,6 @@
             const res = await apiPost(`/order/${selectedOrder.id}/add_item`, { product_id: productId, quantity: 1 });
             if (res.success) {
                 selectedOrder = res.order;
-                // Update table state locally
                 const t = state.tables.find(x => x.id === selectedTableId);
                 if (t) t.active_order = res.order;
                 renderSidebarItems();
@@ -445,12 +527,10 @@
         } catch(e) { toast('Error de conexión', 'error'); }
     }
 
-    // ── Change Quantity (remove & re-add) ──
     window.FloorApp = {
         async changeQty(itemId, productId, newQty) {
             if (!selectedOrder) return;
             if (newQty < 1) { this.removeItem(itemId); return; }
-            // Remove current and add with new qty
             const resRemove = await apiPost(`/order/${selectedOrder.id}/remove_item/${itemId}`);
             if (!resRemove.success) { toast(resRemove.error || 'Error', 'error'); return; }
             const resAdd = await apiPost(`/order/${selectedOrder.id}/add_item`, { product_id: productId, quantity: newQty });
@@ -478,7 +558,7 @@
         }
     };
 
-    // ── Discount / Tip Inputs ──
+    // ── Events ──
     document.getElementById('sbDiscountInput').addEventListener('change', (e) => {
         if (!selectedOrder) return;
         clearTimeout(debounceTimer);
@@ -508,13 +588,11 @@
         }, 400);
     });
 
-    // ── Checkout ──
     document.getElementById('btnCheckout').addEventListener('click', () => {
         if (!selectedOrder) return;
-        window.open(`/cashier/checkout/${selectedOrder.id}`, '_blank');
+        window.open(`${CASHIER_CHECKOUT_URL}${selectedOrder.id}`, '_blank');
     });
 
-    // ── Send KOT ──
     document.getElementById('btnKOT').addEventListener('click', async () => {
         if (!selectedOrder) return;
         const res = await apiPost(`/order/${selectedOrder.id}/send_kot`);
@@ -525,12 +603,131 @@
         } else { toast(res.error || 'Error', 'error'); }
     });
 
+    // ── Modals & Drawers Utils ──
+    function openModal(id) { document.getElementById(id).classList.add('show'); }
+    window.closeModal = function(id) { document.getElementById(id).classList.remove('show'); };
+    
+    // ── Reservations Logic ──
+    document.getElementById('kpiResBtn').addEventListener('click', () => $resDrawer.classList.toggle('open'));
+    document.getElementById('btnCloseDrawer').addEventListener('click', () => $resDrawer.classList.remove('open'));
+
+    function renderReservationsDrawer() {
+        const body = document.getElementById('resDrawerBody');
+        const res = state.reservations || [];
+        if (res.length === 0) {
+            body.innerHTML = `<div style="text-align:center;color:var(--f-text-muted);margin-top:40px;"><i class="bi bi-calendar-x" style="font-size:2rem;"></i><br><br>No hay reservaciones para hoy.</div>`;
+            return;
+        }
+        let html = '';
+        res.forEach(r => {
+            html += `
+                <div class="res-card">
+                    <div class="res-time">${r.time}</div>
+                    <div class="res-name">${r.customer_name}</div>
+                    <div class="res-meta">
+                        <span><i class="bi bi-grid-3x3-gap"></i> Mesa ${r.table_number}</span>
+                        <span><i class="bi bi-people"></i> ${r.guests} pax</span>
+                    </div>
+                </div>
+            `;
+        });
+        body.innerHTML = html;
+    }
+
+    function openResModal(t) {
+        document.getElementById('resTableId').value = t.id;
+        document.getElementById('resModalTableNum').textContent = t.number;
+        const now = new Date();
+        document.getElementById('resDate').value = now.toISOString().split('T')[0];
+        document.getElementById('resTime').value = now.toTimeString().substring(0,5);
+        openModal('modalRes');
+    }
+
+    window.submitReservation = async function() {
+        const payload = {
+            table_id: document.getElementById('resTableId').value,
+            customer_name: document.getElementById('resName').value,
+            customer_phone: document.getElementById('resPhone').value,
+            date: document.getElementById('resDate').value,
+            time: document.getElementById('resTime').value,
+            guest_count: document.getElementById('resGuests').value,
+            notes: document.getElementById('resNotes').value
+        };
+        if (!payload.customer_name || !payload.date || !payload.time) return toast('Datos incompletos', 'error');
+        
+        try {
+            const res = await apiPost('/reservations', payload);
+            if (res.success) {
+                closeModal('modalRes');
+                toast('Reservación creada', 'success');
+                document.getElementById('resForm').reset();
+                fetchStatus();
+            } else { toast(res.error, 'error'); }
+        } catch (e) { toast('Error de red', 'error'); }
+    };
+
+    // ── Split Bill Logic ──
+    document.getElementById('btnSplit').addEventListener('click', () => {
+        if (!selectedOrder || !selectedOrder.items || selectedOrder.items.length === 0) return;
+        const list = document.getElementById('splitItemsList');
+        let html = '';
+        selectedOrder.items.forEach(item => {
+            html += `
+                <div class="split-item-row" data-id="${item.id}" data-max="${item.quantity}">
+                    <div class="split-item-info">
+                        <div class="split-item-name">${item.name}</div>
+                        <div class="split-item-price">S/ ${item.unit_price.toFixed(2)} x Disp: ${item.quantity}</div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <input type="number" class="floor-input split-qty-input" value="0" min="0" max="${item.quantity}" style="width:70px;text-align:center;">
+                    </div>
+                </div>
+            `;
+        });
+        list.innerHTML = html;
+        openModal('modalSplit');
+    });
+
+    window.submitSplitBill = async function() {
+        if (!selectedOrder) return;
+        const itemsToSplit = [];
+        document.querySelectorAll('.split-item-row').forEach(row => {
+            const id = row.dataset.id;
+            const qty = parseInt(row.querySelector('.split-qty-input').value) || 0;
+            if (qty > 0) itemsToSplit.push({ item_id: id, qty: qty });
+        });
+        if (itemsToSplit.length === 0) return toast('Selecciona al menos 1 item para separar.', 'error');
+
+        try {
+            const res = await apiPost(`/order/${selectedOrder.id}/split`, { items: itemsToSplit });
+            if (res.success) {
+                closeModal('modalSplit');
+                toast('Cuenta separada. Abriendo cobro...', 'success');
+                fetchStatus();
+                window.open(`${CASHIER_CHECKOUT_URL}${res.new_order_id}`, '_blank');
+            } else { toast(res.error, 'error'); }
+        } catch (e) { toast('Error de red', 'error'); }
+    };
+
     // ── Context Menu ──
-    document.addEventListener('click', () => $ctx.classList.remove('show'));
-    $ctx.querySelectorAll('.ctx-item').forEach(btn => {
-        btn.addEventListener('click', async () => {
-            if (!ctxTableId) return;
-            const res = await apiPost(`/table/${ctxTableId}/status`, { status: btn.dataset.status });
+    function showContextMenu(e, t) {
+        ctxTableId = t.id;
+        $ctx.style.display = 'block';
+        $ctx.style.left = `${e.pageX}px`;
+        $ctx.style.top = `${e.pageY}px`;
+        
+        const btnReserve = document.getElementById('ctxBtnReserve');
+        btnReserve.onclick = () => {
+            $ctx.style.display = 'none';
+            openResModal(t);
+        };
+    }
+    document.addEventListener('click', () => $ctx.style.display = 'none');
+    $ctx.querySelectorAll('.ctx-item[data-status]').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            const status = e.currentTarget.dataset.status;
+            if (!ctxTableId) return; 
+            const res = await apiPost(`/table/${ctxTableId}/status`, { status: status });
             if (res.success) {
                 toast('Estado actualizado', 'success');
                 await fetchStatus();

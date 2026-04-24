@@ -14,6 +14,7 @@ from app.models.payment import Payment
 from app.models.cash_register import CashSession
 from app.models.notification import Notification
 from app.models.app_signal import AppSignal
+from app.models.reservation import Reservation
 from app import db
 from datetime import datetime, timezone, timedelta
 from sqlalchemy import func
@@ -130,6 +131,24 @@ def api_status():
     total_tables = len(tables)
     occupancy_pct = round((occupied_count / total_tables * 100)) if total_tables > 0 else 0
 
+    # Reservaciones del día
+    reservations_today = Reservation.query.filter(
+        Reservation.reservation_time >= today_start_utc,
+        Reservation.reservation_time < tomorrow_start_utc,
+        Reservation.status != 'cancelled'
+    ).order_by(Reservation.reservation_time).all()
+    
+    reservations_data = []
+    for r in reservations_today:
+        reservations_data.append({
+            'id': r.id,
+            'table_number': r.table.number if r.table else '-',
+            'customer_name': r.customer_name,
+            'time': r.reservation_time.astimezone(PERU_TZ).strftime('%I:%M %p'),
+            'guests': r.guest_count,
+            'status': r.status
+        })
+
     # --- Categorías y productos para el menú ---
     categories = Category.query.filter_by(is_active=True).order_by(Category.name).all()
     products = Product.query.filter_by(is_available=True).order_by(Product.name).all()
@@ -152,6 +171,7 @@ def api_status():
         'tables': tables_data,
         'categories': categories_data,
         'products': products_data,
+        'reservations': reservations_data,
         'kpis': {
             'revenue_today': float(today_revenue),
             'orders_today': today_orders,
@@ -430,3 +450,153 @@ def api_send_kot(order_id):
         db.session.commit()
 
     return jsonify({'success': True, 'sent_count': sent_count, 'order': _serialize_order(order)})
+
+
+# ───────────────────────────────────────────────
+# API: Reservaciones
+# ───────────────────────────────────────────────
+
+@floor_bp.route('/api/reservations', methods=['POST'])
+@login_required
+@role_required('admin', 'cashier')
+def api_create_reservation():
+    """Crea una nueva reservación."""
+    data = request.get_json() or {}
+    table_id = data.get('table_id')
+    name = data.get('customer_name')
+    phone = data.get('customer_phone', '')
+    res_date = data.get('date') # YYYY-MM-DD
+    res_time = data.get('time') # HH:MM
+    guests = safe_int(data.get('guest_count'), default=1)
+    notes = data.get('notes', '')
+
+    if not all([table_id, name, res_date, res_time]):
+        return jsonify({'success': False, 'error': 'Faltan datos requeridos.'}), 400
+
+    table = Table.query.get(table_id)
+    if not table:
+        return jsonify({'success': False, 'error': 'Mesa no encontrada.'}), 404
+
+    try:
+        # Parse datetime and convert to UTC
+        dt_str = f"{res_date} {res_time}"
+        local_dt = datetime.strptime(dt_str, '%Y-%m-%d %H:%M')
+        local_dt = local_dt.replace(tzinfo=PERU_TZ)
+        utc_dt = local_dt.astimezone(timezone.utc)
+
+        reservation = Reservation(
+            table_id=table.id,
+            customer_name=name,
+            customer_phone=phone,
+            reservation_time=utc_dt,
+            guest_count=guests,
+            notes=notes,
+            status='confirmed'
+        )
+        
+        # Marcar la mesa como reservada visualmente si es para hoy
+        now = datetime.now(PERU_TZ)
+        if local_dt.date() == now.date() and table.status == 'free':
+            table.status = 'reserved'
+
+        db.session.add(reservation)
+        db.session.commit()
+        AppSignal.emit('floor_reservation_created', 'reservations')
+
+        return jsonify({'success': True})
+    except Exception as e:
+        db.session.rollback()
+        logger.exception('Error creando reservación')
+        return jsonify({'success': False, 'error': 'Error al crear la reservación. Verifique el formato de fecha.'}), 500
+
+
+# ───────────────────────────────────────────────
+# API: Split Bill (Dividir Cuenta / Separar Items)
+# ───────────────────────────────────────────────
+
+@floor_bp.route('/api/order/<int:order_id>/split', methods=['POST'])
+@login_required
+@role_required('admin', 'cashier')
+def api_split_order(order_id):
+    """Extrae los items especificados y crea una nueva orden para cobrarlos."""
+    original_order = db.session.get(Order, order_id, with_for_update=True)
+    if not original_order:
+        return jsonify({'success': False, 'error': 'Orden original no encontrada.'}), 404
+        
+    data = request.get_json() or {}
+    items_to_split = data.get('items') # List of dicts: [{'item_id': 1, 'qty': 2}]
+    
+    if not items_to_split or len(items_to_split) == 0:
+        return jsonify({'success': False, 'error': 'No se seleccionaron items para separar.'}), 400
+
+    try:
+        # Crear nueva orden para los items separados
+        new_order = Order(
+            table_id=original_order.table_id,
+            user_id=current_user.id,
+            order_number=generate_order_number(),
+            order_type='dine_in',
+            status='pending',
+            total_amount=0,
+            notes='[SPLIT] Cuenta separada de la orden original.'
+        )
+        db.session.add(new_order)
+        db.session.flush() # Para obtener new_order.id
+        
+        new_total = 0.0
+        original_total_reduction = 0.0
+        
+        for split_req in items_to_split:
+            item_id = split_req.get('item_id')
+            split_qty = safe_int(split_req.get('qty'), default=0)
+            
+            if split_qty <= 0:
+                continue
+                
+            orig_item = OrderItem.query.get(item_id)
+            if not orig_item or orig_item.order_id != original_order.id:
+                continue
+                
+            if split_qty > orig_item.quantity:
+                return jsonify({'success': False, 'error': f'Cantidad a separar mayor a la disponible para {orig_item.product.name}.'}), 400
+                
+            unit_price = float(orig_item.unit_price)
+            split_subtotal = unit_price * split_qty
+            
+            # Crear el item en la nueva orden
+            new_item = OrderItem(
+                order_id=new_order.id,
+                product_id=orig_item.product_id,
+                quantity=split_qty,
+                unit_price=unit_price,
+                subtotal=split_subtotal,
+                status=orig_item.status,
+                notes=orig_item.notes
+            )
+            db.session.add(new_item)
+            
+            new_total += split_subtotal
+            original_total_reduction += split_subtotal
+            
+            # Reducir el original
+            orig_item.quantity -= split_qty
+            orig_item.subtotal = float(orig_item.subtotal) - split_subtotal
+            
+            if orig_item.quantity == 0:
+                db.session.delete(orig_item)
+                
+        if new_total == 0:
+            db.session.rollback()
+            return jsonify({'success': False, 'error': 'No se procesó ningún item válido.'}), 400
+            
+        new_order.total_amount = new_total
+        original_order.total_amount = max(0, float(original_order.total_amount or 0) - original_total_reduction)
+        
+        db.session.commit()
+        AppSignal.emit('floor_order_split', 'orders')
+        
+        return jsonify({'success': True, 'new_order_id': new_order.id})
+    except Exception as e:
+        db.session.rollback()
+        logger.exception('Error haciendo split de orden %s', order_id)
+        return jsonify({'success': False, 'error': 'Error interno al procesar el split.'}), 500
