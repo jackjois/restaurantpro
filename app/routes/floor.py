@@ -530,21 +530,22 @@ def api_split_order(order_id):
         return jsonify({'success': False, 'error': 'No se seleccionaron items para separar.'}), 400
 
     try:
-        # Crear nueva orden para los items separados
+        # Crear nueva orden para los items separados (Sin mesa para evitar colisiones en la vista de piso)
         new_order = Order(
-            table_id=original_order.table_id,
+            table_id=None,
             user_id=current_user.id,
             order_number=generate_order_number(),
-            order_type='dine_in',
+            order_type='takeaway', # Se marca como takeaway o para llevar
             status='pending',
             total_amount=0,
-            notes='[SPLIT] Cuenta separada de la orden original.'
+            notes=f'[SPLIT] Cuenta separada de la orden {original_order.order_number}.'
         )
         db.session.add(new_order)
         db.session.flush() # Para obtener new_order.id
         
         new_total = 0.0
         original_total_reduction = 0.0
+        remaining_items_count = len(original_order.items)
         
         for split_req in items_to_split:
             item_id = split_req.get('item_id')
@@ -584,6 +585,7 @@ def api_split_order(order_id):
             
             if orig_item.quantity == 0:
                 db.session.delete(orig_item)
+                remaining_items_count -= 1
                 
         if new_total == 0:
             db.session.rollback()
@@ -592,6 +594,11 @@ def api_split_order(order_id):
         new_order.total_amount = new_total
         original_order.total_amount = max(0, float(original_order.total_amount or 0) - original_total_reduction)
         
+        if remaining_items_count == 0:
+            original_order.status = 'cancelled'
+            if original_order.table_rel:
+                original_order.table_rel.status = 'free'
+                
         db.session.commit()
         AppSignal.emit('floor_order_split', 'orders')
         
