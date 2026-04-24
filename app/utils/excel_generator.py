@@ -94,7 +94,7 @@ def generate_sales_excel(payments):
             try:
                 if len(str(cell.value)) > max_length:
                     max_length = len(str(cell.value))
-            except:
+            except Exception:
                 pass
         adjusted_width = (max_length + 2)
         if adjusted_width > 50:

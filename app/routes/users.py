@@ -3,6 +3,9 @@ from flask_login import login_required, current_user
 from app.models.user import User
 from app import db, bcrypt
 from app.utils.decorators import role_required
+import logging
+
+logger = logging.getLogger(__name__)
 
 users_bp = Blueprint('users', __name__, url_prefix='/users')
 
@@ -123,6 +126,7 @@ def delete(id):
         flash(f'El usuario "{user.username}" ha sido eliminado permanentemente del sistema.', 'success')
     except Exception as e:
         db.session.rollback()
+        logger.exception("Error al eliminar el usuario, aplicando soft delete")
         # Fallback a soft delete si hay restricciones de FK (pedidos, pagos, etc.)
         user.is_active = False
         db.session.commit()

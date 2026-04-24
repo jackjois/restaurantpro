@@ -408,7 +408,7 @@
                         } else {
                             toast(res.error || 'Error', 'error');
                         }
-                    } catch (e) { toast('Error de conexión', 'error'); }
+                    } catch (e) { console.error(e); toast('Error de conexión', 'error'); }
                 } else if (table.status === 'occupied' || table.active_order) {
                     selectTable(table);
                 } else if (table.status === 'reserved') {
@@ -549,7 +549,7 @@
                         renderSidebarTotals();
                         toast('Item agregado', 'success');
                     } else { toast(res.error || 'Error', 'error'); }
-                } catch (e) { toast('Error de conexión', 'error'); }
+                } catch (e) { console.error(e); toast('Error de conexión', 'error'); }
             }
 
             window.FloorApp = {
@@ -587,28 +587,48 @@
             document.getElementById('sbDiscountInput').addEventListener('change', (e) => {
                 if (!selectedOrder) return;
                 clearTimeout(debounceTimer);
+                const input = e.target;
+                input.disabled = true; // Prevenir múltiples ediciones mientras guarda
                 debounceTimer = setTimeout(async () => {
-                    const res = await apiPost(`/order/${selectedOrder.id}/update`, { discount_percent: +e.target.value });
-                    if (res.success) {
-                        selectedOrder = res.order;
-                        const t = state.tables.find(x => x.id === selectedTableId);
-                        if (t) t.active_order = res.order;
-                        renderSidebarTotals();
-                        renderTables();
+                    try {
+                        const res = await apiPost(`/order/${selectedOrder.id}/update`, { discount_percent: +input.value });
+                        if (res.success) {
+                            selectedOrder = res.order;
+                            const t = state.tables.find(x => x.id === selectedTableId);
+                            if (t) t.active_order = res.order;
+                            renderSidebarTotals();
+                            renderTables();
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        toast('Error al actualizar descuento', 'error');
+                    } finally {
+                        input.disabled = false;
+                        input.focus();
                     }
                 }, 400);
             });
             document.getElementById('sbTipInput').addEventListener('change', (e) => {
                 if (!selectedOrder) return;
                 clearTimeout(debounceTimer);
+                const input = e.target;
+                input.disabled = true; // Prevenir múltiples ediciones mientras guarda
                 debounceTimer = setTimeout(async () => {
-                    const res = await apiPost(`/order/${selectedOrder.id}/update`, { tip: +e.target.value });
-                    if (res.success) {
-                        selectedOrder = res.order;
-                        const t = state.tables.find(x => x.id === selectedTableId);
-                        if (t) t.active_order = res.order;
-                        renderSidebarTotals();
-                        renderTables();
+                    try {
+                        const res = await apiPost(`/order/${selectedOrder.id}/update`, { tip: +input.value });
+                        if (res.success) {
+                            selectedOrder = res.order;
+                            const t = state.tables.find(x => x.id === selectedTableId);
+                            if (t) t.active_order = res.order;
+                            renderSidebarTotals();
+                            renderTables();
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        toast('Error al actualizar propina', 'error');
+                    } finally {
+                        input.disabled = false;
+                        input.focus();
                     }
                 }, 400);
             });
@@ -688,7 +708,7 @@
                         document.getElementById('resForm').reset();
                         fetchStatus();
                     } else { toast(res.error, 'error'); }
-                } catch (e) { toast('Error de red', 'error'); }
+                } catch (e) { console.error(e); toast('Error de red', 'error'); }
             };
 
             // ── Split Bill Logic ──
@@ -731,7 +751,7 @@
                         fetchStatus();
                         window.open(`${CASHIER_CHECKOUT_URL}${res.new_order_id}`, '_blank');
                     } else { toast(res.error, 'error'); }
-                } catch (e) { toast('Error de red', 'error'); }
+                } catch (e) { console.error(e); toast('Error de red', 'error'); }
             };
 
             // ── Context Menu ──

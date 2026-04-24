@@ -6,6 +6,9 @@ from app.models.order import Order
 from app import db
 from app.utils.decorators import role_required
 from app.utils.formatters import safe_int
+import logging
+
+logger = logging.getLogger(__name__)
 
 tables_bp = Blueprint('tables', __name__, url_prefix='/tables')
 
@@ -99,6 +102,7 @@ def delete(id):
         flash('Mesa eliminada correctamente.', 'success')
     except Exception as e:
         db.session.rollback()
+        logger.exception("Error al eliminar la mesa")
         flash('No se puede eliminar la mesa porque tiene pedidos asociados.', 'danger')
         
     return redirect(url_for('tables.index'))
