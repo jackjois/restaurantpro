@@ -142,12 +142,10 @@ def api_status():
         res_time_local = r.reservation_time.astimezone(PERU_TZ)
         time_str = res_time_local.strftime('%I:%M %p')
         
-        # Si no es hoy, agregamos la fecha
-        if res_time_local.date() != now_peru.date():
-            # Traducir mes simple
-            meses = {1:'Ene',2:'Feb',3:'Mar',4:'Abr',5:'May',6:'Jun',7:'Jul',8:'Ago',9:'Sep',10:'Oct',11:'Nov',12:'Dic'}
-            fecha_str = f"{res_time_local.day} {meses[res_time_local.month]}"
-            time_str = f"{fecha_str} - {time_str}"
+        # Siempre agregamos la fecha para claridad
+        meses = {1:'Ene',2:'Feb',3:'Mar',4:'Abr',5:'May',6:'Jun',7:'Jul',8:'Ago',9:'Sep',10:'Oct',11:'Nov',12:'Dic'}
+        fecha_str = f"{res_time_local.day} {meses[res_time_local.month]}"
+        time_str = f"{fecha_str} - {time_str}"
             
         reservations_data.append({
             'id': r.id,
