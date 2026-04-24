@@ -18,6 +18,8 @@ class Order(db.Model):
     status = db.Column(db.String(50), default='pending')
     total_amount = db.Column(db.Numeric(10, 2), default=0.0)
     notes = db.Column(db.Text)
+    discount_percent = db.Column(db.Numeric(5, 2), default=0)
+    tip = db.Column(db.Numeric(10, 2), default=0)
     created_at = db.Column(db.DateTime(timezone=True), default=_now_utc)
     updated_at = db.Column(db.DateTime(timezone=True), default=_now_utc, onupdate=_now_utc)
     

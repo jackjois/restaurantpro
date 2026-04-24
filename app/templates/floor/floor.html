@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Floor & Orders — {{ restaurant.name if restaurant else 'RestaurantPro' }}</title>
+    <meta name="description" content="Floor & Orders — Vista POS avanzada de restaurante con mapa de mesas, menú visual y gestión de órdenes en tiempo real.">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/floor.css') }}">
+    {% if restaurant and restaurant.logo_url %}
+    <link rel="icon" href="{{ restaurant.logo_url | resolve_url('') }}">
+    {% else %}
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text x='0' y='14' font-size='16'>🍽️</text></svg>">
+    {% endif %}
+</head>
+<body class="floor-body">
+
+<!-- HEADER -->
+<header class="floor-header">
+    <div class="logo"><i class="bi bi-fire"></i> Floor & Orders</div>
+
+    <div class="kpi-pill">
+        <span class="kpi-label"><i class="bi bi-currency-dollar"></i> Ventas Hoy</span>
+        <span class="kpi-value revenue" id="kpiRevenue">S/ 0.00</span>
+    </div>
+    <div class="kpi-pill">
+        <span class="kpi-label"><i class="bi bi-pie-chart"></i> Ocupación</span>
+        <span class="kpi-value" id="kpiOccupancy">0%</span>
+    </div>
+    <div class="kpi-pill">
+        <span class="kpi-label"><i class="bi bi-card-checklist"></i> Pedidos</span>
+        <span class="kpi-value" id="kpiOrders">0</span>
+    </div>
+    <div class="kpi-pill">
+        <span class="kpi-label"><i class="bi bi-box-seam"></i> Menú Activo</span>
+        <span class="kpi-value" id="kpiMenu">0/0</span>
+    </div>
+
+    <input type="text" class="header-search" id="menuSearch" placeholder="🔍 Buscar menú...">
+
+    <div class="header-right">
+        <div class="header-clock" id="headerClock">--:--</div>
+        <div class="header-user"><i class="bi bi-person-circle"></i> <strong>{{ current_user.username }}</strong></div>
+        <a href="{{ url_for('dashboard.index') if current_user.role == 'admin' else url_for('tables.monitor') }}" style="color:var(--f-text-muted);font-size:0.8rem;text-decoration:none;" title="Volver al sistema"><i class="bi bi-box-arrow-left"></i></a>
+    </div>
+</header>
+
+<!-- MAIN LAYOUT -->
+<div class="floor-wrapper">
+    <!-- LEFT: Floor + Menu -->
+    <div class="floor-main" id="floorMain">
+        <!-- Low Stock Ticker -->
+        <div class="stock-ticker" id="stockTicker" style="display:none;">
+            <div class="stock-ticker-inner" id="tickerContent"></div>
+        </div>
+
+        <!-- Floor Plan -->
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div class="floor-section-title">Mapa de Mesas — Click para seleccionar · Click derecho para cambiar estado</div>
+            <div class="floor-legend">
+                <div class="legend-item"><div class="legend-dot" style="background:var(--f-success)"></div> Libre</div>
+                <div class="legend-item"><div class="legend-dot" style="background:var(--f-accent)"></div> Ocupada</div>
+                <div class="legend-item"><div class="legend-dot" style="background:var(--f-info)"></div> Reservada</div>
+            </div>
+        </div>
+        <div class="tables-grid" id="tablesGrid">
+            <!-- Rendered by JS -->
+        </div>
+
+        <!-- Menu -->
+        <div class="floor-section-title">Menú — Click en un producto para agregarlo a la mesa seleccionada</div>
+        <div class="menu-tabs" id="menuTabs">
+            <!-- Rendered by JS -->
+        </div>
+        <div class="menu-grid" id="menuGrid">
+            <!-- Rendered by JS -->
+        </div>
+    </div>
+
+    <!-- RIGHT: Order Sidebar -->
+    <div class="floor-sidebar" id="floorSidebar">
+        <div class="sidebar-empty" id="sidebarEmpty">
+            <i class="bi bi-hand-index"></i>
+            <div style="font-size:0.9rem;font-weight:600;">Selecciona una mesa</div>
+            <div style="font-size:0.75rem;margin-top:4px;">Click en una mesa del mapa para ver o crear su orden</div>
+        </div>
+
+        <div id="sidebarContent" style="display:none;flex-direction:column;height:100%;">
+            <!-- Header -->
+            <div class="sidebar-header">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div>
+                        <span class="sidebar-table-num" id="sbTableNum">Mesa 1</span>
+                        <span class="sidebar-table-meta" id="sbTableMeta">· 4 asientos</span>
+                    </div>
+                    <div class="sidebar-table-meta" id="sbItemCount">0 items</div>
+                </div>
+                <div style="margin-top:6px;font-size:0.75rem;color:var(--f-text-muted);">
+                    <i class="bi bi-person"></i> Mesero: <strong id="sbWaiter">—</strong>
+                </div>
+            </div>
+
+            <!-- Items -->
+            <div class="sidebar-items" id="sbItems">
+                <div style="text-align:center;padding:24px;color:var(--f-text-dim);font-size:0.85rem;">
+                    Sin items. Agrega desde el menú.
+                </div>
+            </div>
+
+            <!-- Totals -->
+            <div class="sidebar-totals" id="sbTotals">
+                <div class="total-row">
+                    <span>Subtotal</span>
+                    <span id="sbSubtotal">S/ 0.00</span>
+                </div>
+                <div class="total-row">
+                    <span>Descuento <input type="number" class="total-input" id="sbDiscountInput" value="0" min="0" max="100" step="1"> %</span>
+                    <span id="sbDiscountAmount">S/ 0.00</span>
+                </div>
+                <div class="total-row">
+                    <span>Propina</span>
+                    <span><input type="number" class="total-input" id="sbTipInput" value="0" min="0" step="0.50" style="width:70px;"></span>
+                </div>
+                <div class="total-row grand">
+                    <span>Total</span>
+                    <span id="sbGrandTotal">S/ 0.00</span>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="sidebar-actions">
+                <button class="btn-checkout" id="btnCheckout" disabled>
+                    <i class="bi bi-bag-check"></i> Checkout · <span id="btnCheckoutAmount">S/ 0.00</span>
+                </button>
+                <div class="sidebar-btns-row">
+                    <button class="btn-secondary-floor" id="btnKOT" disabled>
+                        <i class="bi bi-printer"></i> Enviar KOT
+                    </button>
+                    <button class="btn-secondary-floor" disabled title="Próximamente">
+                        <i class="bi bi-scissors"></i> Split Bill
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Context Menu -->
+<div class="ctx-menu" id="ctxMenu">
+    <button class="ctx-item" data-status="free"><i class="bi bi-check-circle" style="color:var(--f-success)"></i> Marcar Libre</button>
+    <button class="ctx-item" data-status="reserved"><i class="bi bi-bookmark" style="color:var(--f-info)"></i> Marcar Reservada</button>
+    <button class="ctx-item" data-status="maintenance"><i class="bi bi-tools" style="color:var(--f-text-muted)"></i> Mantenimiento</button>
+</div>
+
+<!-- Toast -->
+<div class="floor-toast" id="floorToast"></div>
+
+<!-- Supabase Realtime -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+(function() {
+    'use strict';
+
+    // ── Config ──
+    const CSRF = "{{ csrf_token() }}";
+    const API_BASE = "{{ url_for('floor.index') }}api";
+    const CASHIER_CHECKOUT_URL = "{{ url_for('cashier.pos') }}".replace('/cashier/', '/cashier/checkout/');
+    const SUPABASE_URL = "{{ supabase_url }}";
+    const SUPABASE_KEY = "{{ supabase_key }}";
+
+    // ── State ──
+    let state = { tables: [], categories: [], products: [], kpis: {} };
+    let selectedTableId = null;
+    let selectedOrder = null;
+    let activeCategory = 'all';
+    let ctxTableId = null;
+    let debounceTimer = null;
+
+    // ── DOM Refs ──
+    const $grid = document.getElementById('tablesGrid');
+    const $menuTabs = document.getElementById('menuTabs');
+    const $menuGrid = document.getElementById('menuGrid');
+    const $sbEmpty = document.getElementById('sidebarEmpty');
+    const $sbContent = document.getElementById('sidebarContent');
+    const $ticker = document.getElementById('stockTicker');
+    const $tickerContent = document.getElementById('tickerContent');
+    const $ctx = document.getElementById('ctxMenu');
+    const $toast = document.getElementById('floorToast');
+    const $search = document.getElementById('menuSearch');
+
+    // ── Init ──
+    fetchStatus();
+    startClock();
+    initRealtime();
+
+    // ── Clock ──
+    function startClock() {
+        function tick() {
+            const now = new Date();
+            const h = now.getHours();
+            const m = String(now.getMinutes()).padStart(2,'0');
+            const ampm = h >= 12 ? 'PM' : 'AM';
+            const h12 = h % 12 || 12;
+            const dateStr = now.toLocaleDateString('es-PE', { weekday:'short', month:'short', day:'numeric', year:'numeric' });
+            document.getElementById('headerClock').innerHTML = `${h12}:${m} ${ampm}<small>${dateStr}</small>`;
+        }
+        tick();
+        setInterval(tick, 1000);
+    }
+
+    // ── Fetch Status ──
+    async function fetchStatus() {
+        try {
+            const res = await fetch(`${API_BASE}/status`, { credentials: 'same-origin' });
+            if (!res.ok) throw new Error('API error');
+            state = await res.json();
+            renderAll();
+        } catch(e) {
+            console.error('Error fetching status:', e);
+        }
+    }
+
+    // ── Render All ──
+    function renderAll() {
+        renderKPIs();
+        renderTicker();
+        renderTables();
+        renderMenuTabs();
+        renderMenuGrid();
+        if (selectedTableId) {
+            const t = state.tables.find(t => t.id === selectedTableId);
+            if (t) selectTable(t);
+            else clearSidebar();
+        }
+    }
+
+    // ── KPIs ──
+    function renderKPIs() {
+        const k = state.kpis;
+        document.getElementById('kpiRevenue').textContent = `S/ ${Number(k.revenue_today).toFixed(2)}`;
+        document.getElementById('kpiOccupancy').textContent = `${k.occupancy_pct}%`;
+        document.getElementById('kpiOrders').textContent = k.orders_today;
+        document.getElementById('kpiMenu').textContent = `${k.menu_available}/${k.menu_total}`;
+    }
+
+    // ── Ticker ──
+    function renderTicker() {
+        const items = state.kpis.low_stock_items || [];
+        if (items.length === 0) { $ticker.style.display = 'none'; return; }
+        $ticker.style.display = 'block';
+        const html = items.map(i => `<span class="stock-ticker-item"><span class="dot"></span>${i.name} · ${i.stock} restantes</span>`).join('');
+        $tickerContent.innerHTML = html + html; // duplicate for seamless scroll
+    }
+
+    // ── Tables ──
+    function renderTables() {
+        let html = '';
+        state.tables.forEach(t => {
+            const st = t.status || 'free';
+            const sel = t.id === selectedTableId ? ' selected' : '';
+            const amt = t.active_order ? `<div class="t-amount">S/ ${Number(t.active_order.grand_total).toFixed(2)}</div>` : '';
+            const badgeText = st === 'free' ? 'Libre' : st === 'occupied' ? 'Ocupada' : st === 'reserved' ? 'Reservada' : 'Mtto';
+            html += `<div class="table-tile st-${st}${sel}" data-id="${t.id}" data-status="${st}">
+                <div class="t-label">Mesa</div>
+                <div class="t-num">${t.number}</div>
+                <div class="t-seats"><i class="bi bi-people-fill"></i> ${t.capacity}</div>
+                <span class="t-badge">${badgeText}</span>
+                ${amt}
+            </div>`;
+        });
+        if (!html) html = '<div style="grid-column:1/-1;text-align:center;color:var(--f-text-dim);padding:24px;">No hay mesas configuradas. Ve a Mesas → Administrar para crearlas.</div>';
+        $grid.innerHTML = html;
+
+        // Events
+        $grid.querySelectorAll('.table-tile').forEach(el => {
+            el.addEventListener('click', () => {
+                const t = state.tables.find(x => x.id === +el.dataset.id);
+                if (t && t.status !== 'maintenance') onTableClick(t);
+            });
+            el.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                ctxTableId = +el.dataset.id;
+                $ctx.style.left = e.clientX + 'px';
+                $ctx.style.top = e.clientY + 'px';
+                $ctx.classList.add('show');
+            });
+        });
+    }
+
+    // ── Table Click Handler ──
+    async function onTableClick(table) {
+        if (table.status === 'free') {
+            // Create order
+            try {
+                const res = await apiPost(`/table/${table.id}/order`);
+                if (res.success) {
+                    toast('Orden creada para Mesa ' + table.number, 'success');
+                    await fetchStatus();
+                } else {
+                    toast(res.error || 'Error', 'error');
+                }
+            } catch(e) { toast('Error de conexión', 'error'); }
+        } else if (table.status === 'occupied' || table.active_order) {
+            selectTable(table);
+        } else if (table.status === 'reserved') {
+            selectTable(table);
+        }
+    }
+
+    function selectTable(table) {
+        selectedTableId = table.id;
+        selectedOrder = table.active_order;
+
+        // Highlight
+        $grid.querySelectorAll('.table-tile').forEach(el => el.classList.toggle('selected', +el.dataset.id === table.id));
+
+        if (!selectedOrder) {
+            $sbEmpty.style.display = 'flex';
+            $sbContent.style.display = 'none';
+            return;
+        }
+
+        $sbEmpty.style.display = 'none';
+        $sbContent.style.display = 'flex';
+
+        document.getElementById('sbTableNum').textContent = 'Mesa ' + table.number;
+        document.getElementById('sbTableMeta').textContent = '· ' + table.capacity + ' asientos';
+        document.getElementById('sbWaiter').textContent = selectedOrder.waiter || '{{ current_user.username }}';
+        renderSidebarItems();
+        renderSidebarTotals();
+    }
+
+    function clearSidebar() {
+        selectedTableId = null;
+        selectedOrder = null;
+        $sbEmpty.style.display = 'flex';
+        $sbContent.style.display = 'none';
+    }
+
+    // ── Sidebar Items ──
+    function renderSidebarItems() {
+        const $items = document.getElementById('sbItems');
+        if (!selectedOrder || selectedOrder.items.length === 0) {
+            $items.innerHTML = '<div style="text-align:center;padding:24px;color:var(--f-text-dim);font-size:0.85rem;">Sin items. Agrega desde el menú.</div>';
+            return;
+        }
+        let html = '';
+        selectedOrder.items.forEach(item => {
+            html += `<div class="order-item-row">
+                <div class="order-item-info">
+                    <div class="order-item-name">${item.name}</div>
+                    ${item.notes ? `<div class="order-item-notes">${item.notes}</div>` : ''}
+                    <div class="qty-control">
+                        <button class="qty-btn" onclick="FloorApp.changeQty(${item.id}, ${item.product_id}, ${item.quantity - 1})">−</button>
+                        <span class="qty-val">${item.quantity}</span>
+                        <button class="qty-btn" onclick="FloorApp.changeQty(${item.id}, ${item.product_id}, ${item.quantity + 1})">+</button>
+                        <button class="btn-remove-item" onclick="FloorApp.removeItem(${item.id})"><i class="bi bi-trash3"></i> Quitar</button>
+                    </div>
+                </div>
+                <div class="order-item-price">S/ ${Number(item.subtotal).toFixed(2)}</div>
+            </div>`;
+        });
+        $items.innerHTML = html;
+    }
+
+    function renderSidebarTotals() {
+        if (!selectedOrder) return;
+        const o = selectedOrder;
+        document.getElementById('sbSubtotal').textContent = `S/ ${Number(o.subtotal).toFixed(2)}`;
+        document.getElementById('sbDiscountInput').value = o.discount_percent;
+        document.getElementById('sbDiscountAmount').textContent = `S/ ${Number(o.discount_amount).toFixed(2)}`;
+        document.getElementById('sbTipInput').value = o.tip;
+        document.getElementById('sbGrandTotal').textContent = `S/ ${Number(o.grand_total).toFixed(2)}`;
+        document.getElementById('btnCheckoutAmount').textContent = `S/ ${Number(o.grand_total).toFixed(2)}`;
+        document.getElementById('sbItemCount').textContent = o.items.length + ' items';
+
+        const hasItems = o.items.length > 0;
+        document.getElementById('btnCheckout').disabled = !hasItems;
+        document.getElementById('btnKOT').disabled = !hasItems;
+    }
+
+    // ── Menu Tabs ──
+    function renderMenuTabs() {
+        let html = `<button class="menu-tab ${activeCategory === 'all' ? 'active' : ''}" data-cat="all">Todos <span class="tab-count">${state.products.length}</span></button>`;
+        state.categories.forEach(c => {
+            const count = state.products.filter(p => p.category_id === c.id).length;
+            html += `<button class="menu-tab ${activeCategory === c.id ? 'active' : ''}" data-cat="${c.id}">${c.name} <span class="tab-count">${count}</span></button>`;
+        });
+        $menuTabs.innerHTML = html;
+        $menuTabs.querySelectorAll('.menu-tab').forEach(btn => {
+            btn.addEventListener('click', () => {
+                activeCategory = btn.dataset.cat === 'all' ? 'all' : +btn.dataset.cat;
+                renderMenuTabs();
+                renderMenuGrid();
+            });
+        });
+    }
+
+    // ── Menu Grid ──
+    function renderMenuGrid() {
+        const search = $search.value.toLowerCase().trim();
+        let filtered = state.products;
+        if (activeCategory !== 'all') filtered = filtered.filter(p => p.category_id === activeCategory);
+        if (search) filtered = filtered.filter(p => p.name.toLowerCase().includes(search));
+
+        let html = '';
+        filtered.forEach(p => {
+            const lowStock = p.track_stock && p.stock !== null && p.stock <= 10 && p.stock > 0;
+            const outOfStock = p.track_stock && p.stock !== null && p.stock <= 0;
+            const badge = outOfStock ? '<div class="stock-badge">Agotado</div>' : lowStock ? `<div class="stock-badge" style="background:rgba(245,158,11,0.85);">Stock: ${p.stock}</div>` : '';
+            const img = p.image_url ? `<img src="${p.image_url}" alt="${p.name}" loading="lazy">` : `<div class="no-img">🍽️</div>`;
+            const disabledClass = outOfStock ? 'style="opacity:0.4;pointer-events:none;"' : '';
+            html += `<div class="menu-card" data-pid="${p.id}" ${disabledClass}>
+                ${badge}${img}
+                <div class="menu-card-body">
+                    <div class="menu-card-name">${p.name}</div>
+                    <div class="menu-card-desc">${p.description}</div>
+                    <div class="menu-card-price">S/ ${Number(p.price).toFixed(2)}</div>
+                </div>
+            </div>`;
+        });
+        if (!html) html = '<div style="grid-column:1/-1;text-align:center;color:var(--f-text-dim);padding:24px;">No hay productos para mostrar.</div>';
+        $menuGrid.innerHTML = html;
+
+        $menuGrid.querySelectorAll('.menu-card').forEach(card => {
+            card.addEventListener('click', () => addMenuItem(+card.dataset.pid));
+        });
+    }
+
+    // ── Add Menu Item ──
+    async function addMenuItem(productId) {
+        if (!selectedOrder) { toast('Selecciona una mesa primero', 'error'); return; }
+        try {
+            const res = await apiPost(`/order/${selectedOrder.id}/add_item`, { product_id: productId, quantity: 1 });
+            if (res.success) {
+                selectedOrder = res.order;
+                // Update table state locally
+                const t = state.tables.find(x => x.id === selectedTableId);
+                if (t) t.active_order = res.order;
+                renderSidebarItems();
+                renderSidebarTotals();
+                toast('Item agregado', 'success');
+            } else { toast(res.error || 'Error', 'error'); }
+        } catch(e) { toast('Error de conexión', 'error'); }
+    }
+
+    // ── Change Quantity (remove & re-add) ──
+    window.FloorApp = {
+        async changeQty(itemId, productId, newQty) {
+            if (!selectedOrder) return;
+            if (newQty < 1) { this.removeItem(itemId); return; }
+            // Remove current and add with new qty
+            const resRemove = await apiPost(`/order/${selectedOrder.id}/remove_item/${itemId}`);
+            if (!resRemove.success) { toast(resRemove.error || 'Error', 'error'); return; }
+            const resAdd = await apiPost(`/order/${selectedOrder.id}/add_item`, { product_id: productId, quantity: newQty });
+            if (resAdd.success) {
+                selectedOrder = resAdd.order;
+                const t = state.tables.find(x => x.id === selectedTableId);
+                if (t) t.active_order = resAdd.order;
+                renderSidebarItems();
+                renderSidebarTotals();
+                renderTables();
+            } else { toast(resAdd.error || 'Error', 'error'); }
+        },
+        async removeItem(itemId) {
+            if (!selectedOrder) return;
+            const res = await apiPost(`/order/${selectedOrder.id}/remove_item/${itemId}`);
+            if (res.success) {
+                selectedOrder = res.order;
+                const t = state.tables.find(x => x.id === selectedTableId);
+                if (t) t.active_order = res.order;
+                renderSidebarItems();
+                renderSidebarTotals();
+                renderTables();
+                toast('Item eliminado', 'success');
+            } else { toast(res.error || 'Error', 'error'); }
+        }
+    };
+
+    // ── Discount / Tip Inputs ──
+    document.getElementById('sbDiscountInput').addEventListener('change', (e) => {
+        if (!selectedOrder) return;
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(async () => {
+            const res = await apiPost(`/order/${selectedOrder.id}/update`, { discount_percent: +e.target.value });
+            if (res.success) {
+                selectedOrder = res.order;
+                const t = state.tables.find(x => x.id === selectedTableId);
+                if (t) t.active_order = res.order;
+                renderSidebarTotals();
+                renderTables();
+            }
+        }, 400);
+    });
+    document.getElementById('sbTipInput').addEventListener('change', (e) => {
+        if (!selectedOrder) return;
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(async () => {
+            const res = await apiPost(`/order/${selectedOrder.id}/update`, { tip: +e.target.value });
+            if (res.success) {
+                selectedOrder = res.order;
+                const t = state.tables.find(x => x.id === selectedTableId);
+                if (t) t.active_order = res.order;
+                renderSidebarTotals();
+                renderTables();
+            }
+        }, 400);
+    });
+
+    // ── Checkout ──
+    document.getElementById('btnCheckout').addEventListener('click', () => {
+        if (!selectedOrder) return;
+        window.open(`/cashier/checkout/${selectedOrder.id}`, '_blank');
+    });
+
+    // ── Send KOT ──
+    document.getElementById('btnKOT').addEventListener('click', async () => {
+        if (!selectedOrder) return;
+        const res = await apiPost(`/order/${selectedOrder.id}/send_kot`);
+        if (res.success) {
+            selectedOrder = res.order;
+            renderSidebarItems();
+            toast(`KOT enviado: ${res.sent_count} item(s) a cocina`, 'success');
+        } else { toast(res.error || 'Error', 'error'); }
+    });
+
+    // ── Context Menu ──
+    document.addEventListener('click', () => $ctx.classList.remove('show'));
+    $ctx.querySelectorAll('.ctx-item').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            if (!ctxTableId) return;
+            const res = await apiPost(`/table/${ctxTableId}/status`, { status: btn.dataset.status });
+            if (res.success) {
+                toast('Estado actualizado', 'success');
+                await fetchStatus();
+            } else { toast(res.error || 'Error', 'error'); }
+            $ctx.classList.remove('show');
+        });
+    });
+
+    // ── Search ──
+    $search.addEventListener('input', () => renderMenuGrid());
+
+    // ── Supabase Realtime ──
+    function initRealtime() {
+        if (!SUPABASE_URL || !SUPABASE_KEY) return;
+        const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        sb.channel('floor-realtime')
+          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'app_signals' }, () => {
+              setTimeout(fetchStatus, 800);
+          })
+          .subscribe();
+    }
+
+    // ── Helpers ──
+    async function apiPost(path, body) {
+        const res = await fetch(`${API_BASE}${path}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+            credentials: 'same-origin',
+            body: body ? JSON.stringify(body) : '{}'
+        });
+        return await res.json();
+    }
+
+    function toast(msg, type) {
+        $toast.textContent = msg;
+        $toast.className = 'floor-toast ' + (type || '') + ' show';
+        setTimeout(() => $toast.classList.remove('show'), 2500);
+    }
+})();
+</script>
+</body>
+</html>

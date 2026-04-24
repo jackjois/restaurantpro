@@ -39,6 +39,7 @@ def create_app(config_class=Config):
     from app.routes.settings import settings_bp
     from app.routes.menu import menu_bp # <-- NUEVO: Importamos el menú digital
     from app.routes.categories import categories_bp
+    from app.routes.floor import floor_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
@@ -51,6 +52,7 @@ def create_app(config_class=Config):
     app.register_blueprint(settings_bp)
     app.register_blueprint(menu_bp) # <-- NUEVO: Lo registramos
     app.register_blueprint(categories_bp)
+    app.register_blueprint(floor_bp)
     
     @app.context_processor
     def inject_notifications():

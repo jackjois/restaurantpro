@@ -122,6 +122,11 @@
                         
                         {% if current_user.role in ['admin', 'cashier', 'waiter'] %}
                         <li class="nav-item mt-1">
+                            <a href="{{ url_for('floor.index') }}" class="sidebar-link" target="_blank">
+                                <i class="bi bi-grid-3x3-gap-fill me-2"></i> Floor & Orders
+                            </a>
+                        </li>
+                        <li class="nav-item mt-1">
                             <a class="sidebar-link dropdown-toggle" href="#" data-bs-toggle="collapse" data-bs-target="#mesasMenu">
                                 <i class="bi bi-grid-3x3-gap me-2"></i> Mesas
                             </a>
