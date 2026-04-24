@@ -26,7 +26,7 @@ def login():
         elif current_user.role == 'chef':
             return redirect(url_for('orders.kitchen'))
         else:
-            return redirect(url_for('tables.monitor'))
+            return redirect(url_for('floor.index'))
     
     if request.method == 'POST':
         username = request.form.get('username')
@@ -64,7 +64,7 @@ def login():
             elif user.role == 'chef':
                 return redirect(url_for('orders.kitchen'))
             else:
-                return redirect(url_for('tables.monitor'))
+                return redirect(url_for('floor.index'))
         else:
             flash('Usuario o contraseña incorrectos. Intente nuevamente.', 'danger')
             

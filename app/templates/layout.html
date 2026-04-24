@@ -28,7 +28,7 @@
 
     <nav class="navbar navbar-dark bg-dark d-md-none px-3 shadow-sm d-flex justify-content-between">
         <a class="navbar-brand fw-bold d-flex align-items-center"
-            href="{% if current_user.role == 'admin' %}{{ url_for('dashboard.index') }}{% elif current_user.role == 'chef' %}{{ url_for('orders.kitchen') }}{% elif current_user.role == 'cashier' %}{{ url_for('cashier.pos') }}{% else %}{{ url_for('tables.monitor') }}{% endif %}">
+            href="{% if current_user.role == 'admin' %}{{ url_for('dashboard.index') }}{% elif current_user.role == 'chef' %}{{ url_for('orders.kitchen') }}{% elif current_user.role == 'cashier' %}{{ url_for('cashier.pos') }}{% else %}{{ url_for('floor.index') }}{% endif %}">
 
             {% if restaurant and restaurant.logo_url %}
             <img src="{{ restaurant.logo_url | resolve_url('') }}" alt="Logo"
@@ -105,7 +105,7 @@
                 </div>
 
                 <div class="offcanvas-body d-flex flex-column p-3 h-100">
-                    <a href="{% if current_user.role == 'admin' %}{{ url_for('dashboard.index') }}{% elif current_user.role == 'chef' %}{{ url_for('orders.kitchen') }}{% elif current_user.role == 'cashier' %}{{ url_for('cashier.pos') }}{% else %}{{ url_for('tables.monitor') }}{% endif %}"
+                    <a href="{% if current_user.role == 'admin' %}{{ url_for('dashboard.index') }}{% elif current_user.role == 'chef' %}{{ url_for('orders.kitchen') }}{% elif current_user.role == 'cashier' %}{{ url_for('cashier.pos') }}{% else %}{{ url_for('floor.index') }}{% endif %}"
                         class="d-none d-md-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none">
 
                         {% if restaurant and restaurant.logo_url %}
