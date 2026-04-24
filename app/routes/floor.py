@@ -353,6 +353,14 @@ def api_remove_item(order_id, item_id):
 
         order.total_amount = max(0, float(order.total_amount or 0) - float(item.subtotal or 0))
         db.session.delete(item)
+        
+        # Check if it was the last item. If so, cancel the order and free the table
+        if len(order.items) <= 1: # <=1 because the item is still in the collection until commit
+            order.status = 'cancelled'
+            order.notes = (order.notes or '') + ' [Cancelada automáticamente por falta de ítems]'
+            if order.table_rel:
+                order.table_rel.status = 'free'
+                
         db.session.commit()
         AppSignal.emit('floor_item_removed', 'order_items')
 

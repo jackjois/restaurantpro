@@ -399,21 +399,8 @@
 
             // ── Table Click Handler ──
             async function onTableClick(table) {
-                if (table.status === 'free') {
-                    try {
-                        const res = await apiPost(`/table/${table.id}/order`);
-                        if (res.success) {
-                            toast('Orden creada para Mesa ' + table.number, 'success');
-                            await fetchStatus();
-                        } else {
-                            toast(res.error || 'Error', 'error');
-                        }
-                    } catch (e) { console.error(e); toast('Error de conexión', 'error'); }
-                } else if (table.status === 'occupied' || table.active_order) {
-                    selectTable(table);
-                } else if (table.status === 'reserved') {
-                    selectTable(table);
-                }
+                // Siempre seleccionar la mesa, sin importar su estado
+                selectTable(table);
             }
 
             function selectTable(table) {
@@ -422,18 +409,13 @@
 
                 $grid.querySelectorAll('.table-tile').forEach(el => el.classList.toggle('selected', +el.dataset.id === table.id));
 
-                if (!selectedOrder) {
-                    $sbEmpty.style.display = 'flex';
-                    $sbContent.style.display = 'none';
-                    return;
-                }
-
+                // Mostrar el sidebar con la info de la mesa, tenga o no orden activa
                 $sbEmpty.style.display = 'none';
                 $sbContent.style.display = 'flex';
 
                 document.getElementById('sbTableNum').textContent = 'Mesa ' + table.number;
                 document.getElementById('sbTableMeta').textContent = '· ' + table.capacity + ' asientos';
-                document.getElementById('sbWaiter').textContent = selectedOrder.waiter || '{{ current_user.username }}';
+                document.getElementById('sbWaiter').textContent = selectedOrder ? (selectedOrder.waiter || '{{ current_user.username }}') : '{{ current_user.username }}';
                 renderSidebarItems();
                 renderSidebarTotals();
             }
@@ -472,7 +454,20 @@
             }
 
             function renderSidebarTotals() {
-                if (!selectedOrder) return;
+                if (!selectedOrder) {
+                    document.getElementById('sbSubtotal').textContent = 'S/ 0.00';
+                    document.getElementById('sbDiscountInput').value = '0';
+                    document.getElementById('sbDiscountAmount').textContent = 'S/ 0.00';
+                    document.getElementById('sbTipInput').value = '0';
+                    document.getElementById('sbGrandTotal').textContent = 'S/ 0.00';
+                    document.getElementById('btnCheckoutAmount').textContent = 'S/ 0.00';
+                    document.getElementById('sbItemCount').textContent = '0 items';
+
+                    document.getElementById('btnCheckout').disabled = true;
+                    document.getElementById('btnKOT').disabled = true;
+                    document.getElementById('btnSplit').disabled = true;
+                    return;
+                }
                 const o = selectedOrder;
                 document.getElementById('sbSubtotal').textContent = `S/ ${Number(o.subtotal).toFixed(2)}`;
                 document.getElementById('sbDiscountInput').value = o.discount_percent;
@@ -538,7 +533,24 @@
 
             // ── Add Menu Item ──
             async function addMenuItem(productId) {
-                if (!selectedOrder) { toast('Selecciona una mesa primero', 'error'); return; }
+                if (!selectedTableId) { toast('Selecciona una mesa primero', 'error'); return; }
+                
+                // Si la mesa no tiene orden activa, crearla en el instante
+                if (!selectedOrder) {
+                    try {
+                        const resOrder = await apiPost(`/table/${selectedTableId}/order`);
+                        if (!resOrder.success) { toast(resOrder.error, 'error'); return; }
+                        selectedOrder = resOrder.order;
+                        const t = state.tables.find(x => x.id === selectedTableId);
+                        if (t) { t.active_order = selectedOrder; t.status = 'occupied'; }
+                        renderTables(); // Update tile
+                    } catch (e) {
+                        console.error(e);
+                        toast('Error al abrir la mesa', 'error');
+                        return;
+                    }
+                }
+
                 try {
                     const res = await apiPost(`/order/${selectedOrder.id}/add_item`, { product_id: productId, quantity: 1 });
                     if (res.success) {
@@ -547,6 +559,7 @@
                         if (t) t.active_order = res.order;
                         renderSidebarItems();
                         renderSidebarTotals();
+                        renderTables();
                         toast('Item agregado', 'success');
                     } else { toast(res.error || 'Error', 'error'); }
                 } catch (e) { console.error(e); toast('Error de conexión', 'error'); }
