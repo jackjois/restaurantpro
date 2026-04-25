@@ -92,9 +92,17 @@ def create_app(config_class=Config):
     def manifest():
         return send_from_directory(os.path.join(app.root_path, 'static'), 'manifest.json')
     
+    from sqlalchemy import text
+
     @app.route('/health')
     def health_check():
-        return {'status': 'ok', 'app': 'RestaurantPro'}, 200
+        try:
+            db.session.execute(text('SELECT 1'))
+            return {'status': 'ok', 'app': 'RestaurantPro'}, 200
+        except Exception as e:
+            logging.getLogger(__name__).exception('Health check DB failed')
+            db.session.rollback()
+            return {'status': 'error', 'app': 'RestaurantPro', 'detail': 'DB connection failed'}, 500
     
     # Excluir health check de CSRF
     csrf.exempt(health_check)
