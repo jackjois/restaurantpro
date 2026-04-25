@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
 from app.models.user import User
 from app import bcrypt, login_manager, db, limiter
+import logging
 import re
 
 # Definimos el Blueprint para la autenticación
@@ -31,12 +32,22 @@ def login():
             return redirect(url_for('floor.index'))
     
     if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '')
         
-        user = User.query.filter_by(username=username).first()
+        if not username or not password:
+            flash('Ingresa usuario y contraseña.', 'danger')
+            return render_template('login.html')
+
+        try:
+            user = User.query.filter_by(username=username).first()
+            password_matches = user and bcrypt.check_password_hash(user.password_hash, password)
+        except Exception as e:
+            logging.getLogger(__name__).exception('Error al autenticar usuario')
+            flash('No se pudo procesar la autenticación. Verifica la conexión al servidor.', 'danger')
+            return render_template('login.html')
         
-        if user and bcrypt.check_password_hash(user.password_hash, password):
+        if password_matches:
             # Verificar que el usuario esté activo
             if not user.is_active:
                 flash('Tu cuenta ha sido desactivada. Contacta al administrador.', 'danger')
