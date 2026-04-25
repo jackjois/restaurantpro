@@ -379,6 +379,73 @@ def api_remove_item(order_id, item_id):
 
 
 # ───────────────────────────────────────────────
+# API: Actualizar cantidad de un item (sin recrearlo)
+# ───────────────────────────────────────────────
+
+@floor_bp.route('/api/order/<int:order_id>/item/<int:item_id>/set_qty', methods=['POST'])
+@login_required
+@role_required('admin', 'cashier', 'waiter')
+def api_set_item_qty(order_id, item_id):
+    """Actualiza la cantidad de un item existente (mantiene id/estado)."""
+    order = db.session.get(Order, order_id, with_for_update=True)
+    if not order:
+        return jsonify({'success': False, 'error': 'Orden no encontrada.'}), 404
+    if order.status in ['paid', 'cancelled']:
+        return jsonify({'success': False, 'error': 'Orden cerrada.'}), 400
+
+    item = db.session.get(OrderItem, item_id, with_for_update=True)
+    if not item or item.order_id != order.id:
+        return jsonify({'success': False, 'error': 'Item no encontrado.'}), 404
+
+    # Para evitar desorden operativo: solo permitir ajuste libre en items en cola
+    if item.status != 'pending':
+        return jsonify({'success': False, 'error': 'Este item ya fue enviado a cocina. No se puede cambiar la cantidad.'}), 400
+
+    data = request.get_json() or {}
+    new_qty = safe_int(data.get('quantity'), default=None)
+    if new_qty is None or new_qty < 1 or new_qty > 99:
+        return jsonify({'success': False, 'error': 'Cantidad inválida.'}), 400
+
+    old_qty = safe_int(item.quantity, default=1)
+    if new_qty == old_qty:
+        return jsonify({'success': True, 'order': _serialize_order(order)})
+
+    product = item.product or db.session.get(Product, item.product_id, with_for_update=True)
+    if not product or not product.is_available:
+        return jsonify({'success': False, 'error': 'Producto no disponible.'}), 400
+
+    try:
+        diff_qty = new_qty - old_qty
+
+        # Ajuste de stock por diferencia
+        if product.track_stock:
+            if diff_qty > 0:
+                if product.stock < diff_qty:
+                    return jsonify({'success': False, 'error': f'Stock insuficiente. Disponible: {product.stock}'}), 400
+                product.stock -= diff_qty
+            elif diff_qty < 0:
+                product.stock += (-diff_qty)
+
+        old_subtotal = float(item.subtotal or 0)
+        new_subtotal = float(item.unit_price) * new_qty
+
+        item.quantity = new_qty
+        item.subtotal = new_subtotal
+
+        # Ajustar total de la orden por diferencia
+        order.total_amount = max(0, float(order.total_amount or 0) + (new_subtotal - old_subtotal))
+
+        db.session.commit()
+        AppSignal.emit('floor_item_qty_updated', 'order_items')
+
+        return jsonify({'success': True, 'order': _serialize_order(order)})
+    except Exception:
+        db.session.rollback()
+        logger.exception('Error actualizando cantidad item %s en orden %s', item_id, order_id)
+        return jsonify({'success': False, 'error': 'Error interno.'}), 500
+
+
+# ───────────────────────────────────────────────
 # API: Actualizar descuento / propina
 # ───────────────────────────────────────────────
 

@@ -576,17 +576,17 @@
                 async changeQty(itemId, productId, newQty) {
                     if (!selectedOrder) return;
                     if (newQty < 1) { this.removeItem(itemId); return; }
-                    const resRemove = await apiPost(`/order/${selectedOrder.id}/remove_item/${itemId}`);
-                    if (!resRemove.success) { toast(resRemove.error || 'Error', 'error'); return; }
-                    const resAdd = await apiPost(`/order/${selectedOrder.id}/add_item`, { product_id: productId, quantity: newQty });
-                    if (resAdd.success) {
-                        selectedOrder = resAdd.order;
+                    const res = await apiPost(`/order/${selectedOrder.id}/item/${itemId}/set_qty`, { quantity: newQty });
+                    if (res.success) {
+                        selectedOrder = res.order;
                         const t = state.tables.find(x => x.id === selectedTableId);
-                        if (t) t.active_order = resAdd.order;
+                        if (t) t.active_order = res.order;
                         renderSidebarItems();
                         renderSidebarTotals();
                         renderTables();
-                    } else { toast(resAdd.error || 'Error', 'error'); }
+                    } else {
+                        toast(res.error || 'Error', 'error');
+                    }
                 },
                 async removeItem(itemId) {
                     if (!selectedOrder) return;
