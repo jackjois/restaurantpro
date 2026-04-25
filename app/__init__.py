@@ -102,7 +102,7 @@ def create_app(config_class=Config):
         except Exception as e:
             logging.getLogger(__name__).exception('Health check DB failed')
             db.session.rollback()
-            return {'status': 'error', 'app': 'RestaurantPro', 'detail': 'DB connection failed'}, 500
+            return {'status': 'error', 'app': 'RestaurantPro', 'detail': str(e)[:500]}, 500
     
     # Excluir health check de CSRF
     csrf.exempt(health_check)
