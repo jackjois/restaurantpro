@@ -24,16 +24,46 @@
 
 body.floor-body.theme-dark {
     --f-bg: #0f1117;
-    --f-surface: #1a1d27;
-    --f-card: #222536;
-    --f-card-hover: #2a2d40;
-    --f-border: #2e3144;
-    --f-accent: #f59e0b;
-    --f-accent-hover: #d97706;
+    --f-surface: #151b27;
+    --f-card: #1c2433;
+    --f-card-hover: #243045;
+    --f-border: #2f3b52;
+    --f-accent: #38bdf8;
+    --f-accent-hover: #0ea5e9;
     --f-warning: #f59e0b;
-    --f-text: #e5e7eb;
-    --f-text-muted: #6b7280;
-    --f-text-dim: #4b5563;
+    --f-text: #e2e8f0;
+    --f-text-muted: #9aa9bf;
+    --f-text-dim: #70809b;
+}
+
+body.floor-body.theme-dark .floor-header,
+body.floor-body.theme-dark .floor-sidebar {
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
+}
+
+body.floor-body.theme-dark .table-tile,
+body.floor-body.theme-dark .menu-card,
+body.floor-body.theme-dark .sidebar-totals,
+body.floor-body.theme-dark .sidebar-actions,
+body.floor-body.theme-dark .header-search,
+body.floor-body.theme-dark .total-input,
+body.floor-body.theme-dark .btn-secondary-floor,
+body.floor-body.theme-dark .ctx-menu,
+body.floor-body.theme-dark .floor-modal {
+    border-color: rgba(154, 169, 191, 0.25);
+}
+
+body.floor-body.theme-dark .menu-card:hover,
+body.floor-body.theme-dark .table-tile:hover {
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.38);
+}
+
+body.floor-body.theme-dark .btn-checkout {
+    background: #0f9f6e;
+}
+
+body.floor-body.theme-dark .btn-checkout:hover {
+    background: #0b855d;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
