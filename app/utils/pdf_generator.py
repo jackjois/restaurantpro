@@ -1,10 +1,9 @@
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from app.models.setting import Setting # <-- Importamos las configuraciones
+from app.constants import PERU_TZ
 import io
 from datetime import timezone, timedelta
-
-PERU_TZ = timezone(timedelta(hours=-5))
 
 def generate_sales_pdf(payments):
     output = io.BytesIO()

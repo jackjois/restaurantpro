@@ -12,6 +12,7 @@ from app.models.app_signal import AppSignal
 from datetime import datetime, timezone, timedelta
 from app import db
 from app.utils.formatters import safe_float
+from app.constants import PERU_TZ
 import logging
 
 logger = logging.getLogger(__name__)
@@ -28,7 +29,6 @@ def pos():
     # Convertir hora de apertura a Perú para mostrar correctamente
     opening_time_peru = None
     if current_session and current_session.opening_time:
-        PERU_TZ = timezone(timedelta(hours=-5))
         ot = current_session.opening_time
         if ot.tzinfo is None:
             ot = ot.replace(tzinfo=timezone.utc)
@@ -305,7 +305,6 @@ def ticket(order_id):
     invoice = Invoice.query.filter_by(payment_id=payment.id).first() if payment else None
     
     # Convertir fechas a hora Perú para el ticket impreso
-    PERU_TZ = timezone(timedelta(hours=-5))
     order_time_peru = order.created_at
     if order_time_peru:
         if order_time_peru.tzinfo is None:

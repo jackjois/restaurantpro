@@ -7,9 +7,7 @@ from app import db
 from sqlalchemy import func
 from datetime import date, datetime, timedelta, timezone
 from app.utils.decorators import role_required # <-- Candado de seguridad
-
-# Timezone de Perú (UTC-5)
-PERU_TZ = timezone(timedelta(hours=-5))
+from app.constants import PERU_TZ
 
 # Definimos el Blueprint para el dashboard
 dashboard_bp = Blueprint('dashboard', __name__)

@@ -9,10 +9,9 @@ from app import db
 from sqlalchemy import func, desc, cast, Date
 from app.utils.excel_generator import generate_sales_excel
 from app.utils.pdf_generator import generate_sales_pdf
+from app.constants import PERU_TZ
 import collections
 from datetime import datetime, timezone, timedelta
-
-PERU_TZ = timezone(timedelta(hours=-5))
 
 reports_bp = Blueprint('reports', __name__, url_prefix='/reports')
 

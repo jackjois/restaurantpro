@@ -1,10 +1,9 @@
 import openpyxl
 from openpyxl.styles import Font, Alignment
 from app.models.setting import Setting
+from app.constants import PERU_TZ
 import io
 from datetime import timezone, timedelta
-
-PERU_TZ = timezone(timedelta(hours=-5))
 
 def generate_sales_excel(payments):
     wb = openpyxl.Workbook()

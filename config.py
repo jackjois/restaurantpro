@@ -37,10 +37,14 @@ class Config:
     is_production = bool(os.environ.get("VERCEL"))
     
     ssl_ctx = ssl.create_default_context()
-    # Supabase a menudo requiere ignorar la validación estricta del certificado en entornos Serverless (Vercel)
-    # debido a la cadena de certificados del proxy IPv4.
-    ssl_ctx.check_hostname = False
-    ssl_ctx.verify_mode = ssl.CERT_NONE
+    if is_production:
+        # Enable SSL certificate verification in production
+        ssl_ctx.check_hostname = True
+        ssl_ctx.verify_mode = ssl.CERT_REQUIRED
+    else:
+        # Disable SSL verification in development (local XAMPP)
+        ssl_ctx.check_hostname = False
+        ssl_ctx.verify_mode = ssl.CERT_NONE
 
     if is_production:
         from sqlalchemy.pool import NullPool

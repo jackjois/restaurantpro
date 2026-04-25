@@ -1,7 +1,8 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
 from app.models.user import User
-from app import bcrypt, login_manager, db
+from app import bcrypt, login_manager, db, limiter
+import re
 
 # Definimos el Blueprint para la autenticación
 auth_bp = Blueprint('auth', __name__)
@@ -16,6 +17,7 @@ def load_user(user_id):
 
 @auth_bp.route('/', methods=['GET', 'POST'])
 @auth_bp.route('/login', methods=['GET', 'POST'])
+@limiter.limit("5 per minute")
 def login():
     # Si el usuario ya está autenticado y accede al login por GET, redirigir a su panel
     if request.method == 'GET' and current_user.is_authenticated:
@@ -100,8 +102,28 @@ def register():
         email = request.form.get('email')
         password = request.form.get('password')
         
-        if not password or len(password.strip()) < 8:
-            flash('La contraseña debe tener al menos 8 caracteres.', 'danger')
+        if not password:
+            flash('La contraseña es requerida.', 'danger')
+            return redirect(url_for('auth.register'))
+        
+        if len(password) < 12:
+            flash('La contraseña debe tener al menos 12 caracteres.', 'danger')
+            return redirect(url_for('auth.register'))
+        
+        if not re.search(r'[A-Z]', password):
+            flash('La contraseña debe contener al menos una mayúscula.', 'danger')
+            return redirect(url_for('auth.register'))
+        
+        if not re.search(r'[a-z]', password):
+            flash('La contraseña debe contener al menos una minúscula.', 'danger')
+            return redirect(url_for('auth.register'))
+        
+        if not re.search(r'[0-9]', password):
+            flash('La contraseña debe contener al menos un número.', 'danger')
+            return redirect(url_for('auth.register'))
+        
+        if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
+            flash('La contraseña debe contener al menos un carácter especial.', 'danger')
             return redirect(url_for('auth.register'))
         
         # Revisar duplicados

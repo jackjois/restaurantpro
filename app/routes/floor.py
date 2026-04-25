@@ -18,11 +18,10 @@ from app.models.reservation import Reservation
 from app import db
 from datetime import datetime, timezone, timedelta
 from sqlalchemy import func
+from app.constants import PERU_TZ
 import logging
 
 logger = logging.getLogger(__name__)
-
-PERU_TZ = timezone(timedelta(hours=-5))
 
 floor_bp = Blueprint('floor', __name__, url_prefix='/floor')
 
