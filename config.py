@@ -25,7 +25,8 @@ class Config:
     REMEMBER_COOKIE_SECURE = _is_vercel
     
     # Configuración de la base de datos (PostgreSQL en Supabase vía pg8000)
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or os.environ.get('SUPABASE_DATABASE_URL')
+    _db_url = os.environ.get('DATABASE_URL') or os.environ.get('SUPABASE_DATABASE_URL')
+    SQLALCHEMY_DATABASE_URI = _db_url.strip() if _db_url else None
     if not SQLALCHEMY_DATABASE_URI:
         raise ValueError("FALTA DATABASE_URL en variables de entorno. Configura la conexión a la base de datos Supabase.")
     if SQLALCHEMY_DATABASE_URI.startswith("postgres://"):
