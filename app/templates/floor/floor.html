@@ -47,6 +47,9 @@
         <input type="text" class="header-search" id="menuSearch" placeholder="🔍 Buscar menú...">
 
         <div class="header-right">
+            <button class="theme-toggle-btn" id="btnThemeToggle" title="Cambiar tema">
+                <i class="bi bi-moon-stars"></i>
+            </button>
             <div class="header-clock" id="headerClock">--:--</div>
             <div class="header-user"><i class="bi bi-person-circle"></i> <strong>{{ current_user.username }}</strong>
             </div>
@@ -318,8 +321,10 @@
             const $toast = document.getElementById('floorToast');
             const $search = document.getElementById('menuSearch');
             const $resDrawer = document.getElementById('resDrawer');
+            const $btnThemeToggle = document.getElementById('btnThemeToggle');
 
             // ── Init ──
+            initTheme();
             fetchStatus();
             startClock();
             initRealtime();
@@ -332,6 +337,27 @@
                     .replace(/>/g, '&gt;')
                     .replace(/"/g, '&quot;')
                     .replace(/'/g, '&#39;');
+            }
+
+            function initTheme() {
+                const savedTheme = localStorage.getItem('floor_theme') || 'light';
+                applyTheme(savedTheme);
+                $btnThemeToggle.addEventListener('click', () => {
+                    const isDark = document.body.classList.contains('theme-dark');
+                    applyTheme(isDark ? 'light' : 'dark');
+                });
+            }
+
+            function applyTheme(theme) {
+                const dark = theme === 'dark';
+                document.body.classList.toggle('theme-dark', dark);
+                localStorage.setItem('floor_theme', dark ? 'dark' : 'light');
+                $btnThemeToggle.innerHTML = dark
+                    ? '<i class="bi bi-sun"></i>'
+                    : '<i class="bi bi-moon-stars"></i>';
+                $btnThemeToggle.title = dark
+                    ? 'Cambiar a tema claro'
+                    : 'Cambiar a tema oscuro';
             }
 
             // ── Clock ──

@@ -1,10 +1,28 @@
 /* ═══════════════════════════════════════════
-   Floor & Orders — Dark Theme POS
+   Floor & Orders — Light Theme POS
    ═══════════════════════════════════════════ */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 :root {
+    --f-bg: #f4f7fb;
+    --f-surface: #ffffff;
+    --f-card: #ffffff;
+    --f-card-hover: #f8fafc;
+    --f-border: #dbe2ea;
+    --f-accent: #2563eb;
+    --f-accent-hover: #1d4ed8;
+    --f-success: #10b981;
+    --f-danger: #ef4444;
+    --f-warning: #d97706;
+    --f-info: #3b82f6;
+    --f-text: #0f172a;
+    --f-text-muted: #64748b;
+    --f-text-dim: #94a3b8;
+    --f-sidebar-w: 340px;
+}
+
+body.floor-body.theme-dark {
     --f-bg: #0f1117;
     --f-surface: #1a1d27;
     --f-card: #222536;
@@ -12,14 +30,10 @@
     --f-border: #2e3144;
     --f-accent: #f59e0b;
     --f-accent-hover: #d97706;
-    --f-success: #10b981;
-    --f-danger: #ef4444;
     --f-warning: #f59e0b;
-    --f-info: #3b82f6;
     --f-text: #e5e7eb;
     --f-text-muted: #6b7280;
     --f-text-dim: #4b5563;
-    --f-sidebar-w: 340px;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -85,6 +99,23 @@ body.floor-body {
 }
 .header-search:focus { border-color: var(--f-accent); }
 .header-search::placeholder { color: var(--f-text-dim); }
+.theme-toggle-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    border: 1px solid var(--f-border);
+    background: var(--f-card);
+    color: var(--f-text-muted);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.theme-toggle-btn:hover {
+    color: var(--f-text);
+    border-color: var(--f-accent);
+}
 
 /* ── LAYOUT ── */
 .floor-wrapper {
@@ -272,7 +303,7 @@ body.floor-body {
     transition: all 0.2s;
 }
 .menu-tab:hover { color: var(--f-text); background: var(--f-card-hover); }
-.menu-tab.active { background: var(--f-accent); color: #000; border-color: var(--f-accent); }
+.menu-tab.active { background: var(--f-accent); color: #fff; border-color: var(--f-accent); }
 .menu-tab .tab-count {
     font-size: 0.65rem;
     margin-left: 4px;
@@ -418,7 +449,7 @@ body.floor-body {
     justify-content: center;
     transition: all 0.15s;
 }
-.qty-btn:hover { background: var(--f-accent); color: #000; border-color: var(--f-accent); }
+.qty-btn:hover { background: var(--f-accent); color: #fff; border-color: var(--f-accent); }
 .qty-val { font-size: 0.8rem; font-weight: 700; min-width: 16px; text-align: center; }
 .btn-remove-item {
     background: none; border: none;
@@ -635,7 +666,7 @@ body.floor-body {
 }
 .btn-floor-cancel { background: var(--f-card); color: var(--f-text); border: 1px solid var(--f-border); }
 .btn-floor-cancel:hover { background: var(--f-card-hover); }
-.btn-floor-primary { background: var(--f-accent); color: #000; }
+.btn-floor-primary { background: var(--f-accent); color: #fff; }
 .btn-floor-primary:hover { background: var(--f-accent-hover); transform: translateY(-1px); }
 
 /* Split List */
