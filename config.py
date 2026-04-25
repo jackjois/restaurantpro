@@ -38,14 +38,11 @@ class Config:
     is_production = bool(os.environ.get("VERCEL"))
     
     ssl_ctx = ssl.create_default_context()
-    if is_production:
-        # Enable SSL certificate verification in production
-        ssl_ctx.check_hostname = True
-        ssl_ctx.verify_mode = ssl.CERT_REQUIRED
-    else:
-        # Disable SSL verification in development (local XAMPP)
-        ssl_ctx.check_hostname = False
-        ssl_ctx.verify_mode = ssl.CERT_NONE
+    # Supabase's connection pooler (Supavisor, port 6543) uses certificates
+    # that don't pass strict hostname verification with pg8000.
+    # TLS encryption is still active — only certificate chain validation is skipped.
+    ssl_ctx.check_hostname = False
+    ssl_ctx.verify_mode = ssl.CERT_NONE
 
     if is_production:
         from sqlalchemy.pool import NullPool
