@@ -729,7 +729,14 @@
 
             document.getElementById('btnCancelOrder').addEventListener('click', async () => {
                 if (!selectedOrder) return;
-                if(!confirm('¿Estás seguro que deseas cancelar este pedido por completo? Todos los items serán eliminados y la mesa quedará libre.')) return;
+                const confirmed = await askConfirm({
+                    title: 'Cancelar pedido completo',
+                    message: 'Esta acción anulará todo el pedido, quitará sus ítems y liberará la mesa. Solo continúa si estás totalmente seguro.',
+                    confirmText: 'Sí, cancelar pedido',
+                    cancelText: 'No, volver',
+                    danger: true
+                });
+                if (!confirmed) return;
                 try {
                     const res = await apiPost(`/order/${selectedOrder.id}/cancel`);
                     if (res.success) {
@@ -749,7 +756,7 @@
             // ── Modals & Drawers Utils ──
             function openModal(id) { document.getElementById(id).classList.add('show'); }
             window.closeModal = function (id) { document.getElementById(id).classList.remove('show'); };
-            function askConfirm({ title, message, confirmText = 'Sí, continuar', cancelText = 'Volver' }) {
+            function askConfirm({ title, message, confirmText = 'Sí, continuar', cancelText = 'Volver', danger = false }) {
                 return new Promise(resolve => {
                     const $title = document.getElementById('confirmTitle');
                     const $msg = document.getElementById('confirmMessage');
@@ -760,10 +767,14 @@
                     $msg.textContent = message || '¿Seguro que deseas continuar?';
                     $ok.textContent = confirmText;
                     $cancel.textContent = cancelText;
+                    $ok.style.background = danger ? 'var(--f-danger)' : 'var(--f-accent)';
+                    $ok.style.color = '#fff';
 
                     const cleanup = () => {
                         $ok.onclick = null;
                         $cancel.onclick = null;
+                        $ok.style.background = 'var(--f-accent)';
+                        $ok.style.color = '#fff';
                     };
 
                     $ok.onclick = () => {
