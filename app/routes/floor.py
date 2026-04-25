@@ -480,28 +480,27 @@ def api_table_status(table_id):
 @login_required
 @role_required('admin', 'cashier', 'waiter')
 def api_send_kot(order_id):
-    """Marca items pendientes como 'preparing' (enviados a cocina)."""
+    """
+    Envía/notifica el pedido a cocina (KOT) sin iniciar preparación.
+    
+    En este sistema, la cocina (KDS) es quien marca el paso 'pending' -> 'preparing'.
+    """
     order = Order.query.get_or_404(order_id)
 
-    sent_count = 0
-    for item in order.items:
-        if item.status == 'pending':
-            item.status = 'preparing'
-            sent_count += 1
+    sent_count = sum(1 for item in order.items if item.status == 'pending')
 
     if sent_count > 0:
-        db.session.commit()
-        AppSignal.emit('floor_kot_sent', 'order_items')
-
-        # Notificación para cocina
+        # Notificación para cocina (sin cambiar estado de items)
         table_num = order.table_rel.number if order.table_rel else 'N/A'
         Notification.create(
             type='system',
             message=f'🔥 KOT enviado: {sent_count} item(s) de Mesa {table_num}',
             user_id=None
         )
+        AppSignal.emit('floor_kot_sent', 'order_items')
         db.session.commit()
 
+    # No cambiamos estados; cocina decide cuándo pasa a 'preparing'
     return jsonify({'success': True, 'sent_count': sent_count, 'order': _serialize_order(order)})
 
 
