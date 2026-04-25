@@ -263,6 +263,24 @@
             </div>
         </div>
     </div>
+    <!-- Confirm Modal -->
+    <div class="floor-modal-backdrop" id="modalConfirm">
+        <div class="floor-modal" style="max-width:420px;">
+            <div class="floor-modal-header">
+                <div class="floor-modal-title" id="confirmTitle">Confirmar acción</div>
+                <button class="btn-close-modal" onclick="closeModal('modalConfirm')"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div class="floor-modal-body">
+                <div id="confirmMessage" style="font-size:0.9rem;color:var(--f-text-muted);line-height:1.45;">
+                    ¿Seguro que deseas continuar?
+                </div>
+            </div>
+            <div class="floor-modal-footer">
+                <button class="btn-floor btn-floor-cancel" id="btnConfirmCancel">Volver</button>
+                <button class="btn-floor btn-floor-primary" id="btnConfirmAccept">Sí, continuar</button>
+            </div>
+        </div>
+    </div>
     <!-- Toast -->
     <div class="floor-toast" id="floorToast"></div>
 
@@ -705,6 +723,37 @@
             // ── Modals & Drawers Utils ──
             function openModal(id) { document.getElementById(id).classList.add('show'); }
             window.closeModal = function (id) { document.getElementById(id).classList.remove('show'); };
+            function askConfirm({ title, message, confirmText = 'Sí, continuar', cancelText = 'Volver' }) {
+                return new Promise(resolve => {
+                    const $title = document.getElementById('confirmTitle');
+                    const $msg = document.getElementById('confirmMessage');
+                    const $ok = document.getElementById('btnConfirmAccept');
+                    const $cancel = document.getElementById('btnConfirmCancel');
+
+                    $title.textContent = title || 'Confirmar acción';
+                    $msg.textContent = message || '¿Seguro que deseas continuar?';
+                    $ok.textContent = confirmText;
+                    $cancel.textContent = cancelText;
+
+                    const cleanup = () => {
+                        $ok.onclick = null;
+                        $cancel.onclick = null;
+                    };
+
+                    $ok.onclick = () => {
+                        cleanup();
+                        closeModal('modalConfirm');
+                        resolve(true);
+                    };
+                    $cancel.onclick = () => {
+                        cleanup();
+                        closeModal('modalConfirm');
+                        resolve(false);
+                    };
+
+                    openModal('modalConfirm');
+                });
+            }
 
             // ── Reservations Logic ──
             document.getElementById('kpiResBtn').addEventListener('click', () => $resDrawer.classList.toggle('open'));
@@ -740,7 +789,13 @@
             }
 
             window.cancelReservation = async function(id) {
-                if(!confirm('¿Seguro que deseas cancelar esta reserva?')) return;
+                const confirmed = await askConfirm({
+                    title: 'Cancelar reserva',
+                    message: '¿Seguro que deseas cancelar esta reserva? Esta acción puede liberar la mesa reservada.',
+                    confirmText: 'Sí, cancelar',
+                    cancelText: 'No, volver'
+                });
+                if (!confirmed) return;
                 try {
                     const res = await apiPost(`/reservation/${id}/cancel`);
                     if (res.success) {
