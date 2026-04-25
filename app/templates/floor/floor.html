@@ -306,6 +306,16 @@
             startClock();
             initRealtime();
 
+            function escapeHtml(value) {
+                const str = String(value ?? '');
+                return str
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
+            }
+
             // ── Clock ──
             function startClock() {
                 function tick() {
@@ -441,10 +451,12 @@
                 }
                 let html = '';
                 selectedOrder.items.forEach(item => {
+                    const safeName = escapeHtml(item.name);
+                    const safeNotes = escapeHtml(item.notes || '');
                     html += `<div class="order-item-row">
                 <div class="order-item-info">
-                    <div class="order-item-name">${item.name}</div>
-                    ${item.notes ? `<div class="order-item-notes">${item.notes}</div>` : ''}
+                    <div class="order-item-name">${safeName}</div>
+                    ${safeNotes ? `<div class="order-item-notes">${safeNotes}</div>` : ''}
                     <div class="qty-control">
                         <button class="qty-btn" onclick="FloorApp.changeQty(${item.id}, ${item.product_id}, ${item.quantity - 1})">−</button>
                         <span class="qty-val">${item.quantity}</span>
@@ -495,7 +507,8 @@
                 let html = `<button class="menu-tab ${activeCategory === 'all' ? 'active' : ''}" data-cat="all">Todos <span class="tab-count">${state.products.length}</span></button>`;
                 state.categories.forEach(c => {
                     const count = state.products.filter(p => p.category_id === c.id).length;
-                    html += `<button class="menu-tab ${activeCategory === c.id ? 'active' : ''}" data-cat="${c.id}">${c.name} <span class="tab-count">${count}</span></button>`;
+                    const safeCatName = escapeHtml(c.name);
+                    html += `<button class="menu-tab ${activeCategory === c.id ? 'active' : ''}" data-cat="${c.id}">${safeCatName} <span class="tab-count">${count}</span></button>`;
                 });
                 $menuTabs.innerHTML = html;
                 $menuTabs.querySelectorAll('.menu-tab').forEach(btn => {
@@ -519,13 +532,15 @@
                     const lowStock = p.track_stock && p.stock !== null && p.stock <= 10 && p.stock > 0;
                     const outOfStock = p.track_stock && p.stock !== null && p.stock <= 0;
                     const badge = outOfStock ? '<div class="stock-badge">Agotado</div>' : lowStock ? `<div class="stock-badge" style="background:rgba(245,158,11,0.85);">Stock: ${p.stock}</div>` : '';
-                    const img = p.image_url ? `<img src="${p.image_url}" alt="${p.name}" loading="lazy">` : `<div class="no-img">🍽️</div>`;
+                    const safeName = escapeHtml(p.name);
+                    const safeDesc = escapeHtml(p.description || '');
+                    const img = p.image_url ? `<img src="${p.image_url}" alt="${safeName}" loading="lazy">` : `<div class="no-img">🍽️</div>`;
                     const disabledClass = outOfStock ? 'style="opacity:0.4;pointer-events:none;"' : '';
                     html += `<div class="menu-card" data-pid="${p.id}" ${disabledClass}>
                 ${badge}${img}
                 <div class="menu-card-body">
-                    <div class="menu-card-name">${p.name}</div>
-                    <div class="menu-card-desc">${p.description}</div>
+                    <div class="menu-card-name">${safeName}</div>
+                    <div class="menu-card-desc">${safeDesc}</div>
                     <div class="menu-card-price">S/ ${Number(p.price).toFixed(2)}</div>
                 </div>
             </div>`;
@@ -664,7 +679,7 @@
                 if (res.success) {
                     selectedOrder = res.order;
                     renderSidebarItems();
-                    toast(`KOT enviado: ${res.sent_count} item(s) a cocina`, 'success');
+                    toast(`Pedido enviado a cocina: ${res.sent_count} item(s)`, 'success');
                 } else { toast(res.error || 'Error', 'error'); }
             });
 
@@ -704,12 +719,15 @@
                 }
                 let html = '';
                 res.forEach(r => {
+                    const safeTime = escapeHtml(r.time);
+                    const safeName = escapeHtml(r.customer_name);
+                    const safeTable = escapeHtml(r.table_number);
                     html += `
                 <div class="res-card" style="position:relative;">
-                    <div class="res-time">${r.time}</div>
-                    <div class="res-name">${r.customer_name}</div>
+                    <div class="res-time">${safeTime}</div>
+                    <div class="res-name">${safeName}</div>
                     <div class="res-meta">
-                        <span><i class="bi bi-grid-3x3-gap"></i> Mesa ${r.table_number}</span>
+                        <span><i class="bi bi-grid-3x3-gap"></i> Mesa ${safeTable}</span>
                         <span><i class="bi bi-people"></i> ${r.guests} pax</span>
                     </div>
                     <button class="btn-remove-item" style="position:absolute; top:12px; right:12px; border:none; background:none; color:var(--f-danger); cursor:pointer;" onclick="cancelReservation(${r.id})" title="Cancelar Reserva">
@@ -775,10 +793,11 @@
                 const list = document.getElementById('splitItemsList');
                 let html = '';
                 selectedOrder.items.forEach(item => {
+                    const safeName = escapeHtml(item.name);
                     html += `
                 <div class="split-item-row" data-id="${item.id}" data-max="${item.quantity}">
                     <div class="split-item-info">
-                        <div class="split-item-name">${item.name}</div>
+                        <div class="split-item-name">${safeName}</div>
                         <div class="split-item-price">S/ ${item.unit_price.toFixed(2)} x Disp: ${item.quantity}</div>
                     </div>
                     <div style="display:flex;align-items:center;gap:8px;">

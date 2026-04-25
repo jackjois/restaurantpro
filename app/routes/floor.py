@@ -495,6 +495,9 @@ def api_cancel_order(order_id):
         for item in order.items:
             if item.product and item.product.track_stock:
                 item.product.stock += item.quantity
+            # Mantener consistencia con el resto del sistema: anular items al anular la orden
+            if item.status != 'cancelled':
+                item.status = 'cancelled'
 
         order.status = 'cancelled'
         order.notes = (order.notes or '') + ' [Cancelada manualmente]'
@@ -561,7 +564,7 @@ def api_send_kot(order_id):
         table_num = order.table_rel.number if order.table_rel else 'N/A'
         Notification.create(
             type='system',
-            message=f'🔥 KOT enviado: {sent_count} item(s) de Mesa {table_num}',
+            message=f'🔥 Pedido enviado a cocina: {sent_count} item(s) de Mesa {table_num}',
             user_id=None
         )
         AppSignal.emit('floor_kot_sent', 'order_items')
