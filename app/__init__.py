@@ -67,8 +67,8 @@ def create_app(config_class=Config):
         # Obtenemos las vars de Entorno de Supabase.
         # IMPORTANTE: solo la ANON key es segura para exponer en HTML/JS.
         # Nunca hacer fallback a SUPABASE_KEY (service role) en frontend.
-        supa_url = os.environ.get("SUPABASE_URL", "")
-        supa_key = os.environ.get("SUPABASE_ANON_KEY", "")
+        supa_url = app.config.get("SUPABASE_URL", "")
+        supa_key = app.config.get("SUPABASE_ANON_KEY", "")
         
         if current_user.is_authenticated:
             try:

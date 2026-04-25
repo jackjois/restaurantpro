@@ -25,7 +25,7 @@ class Config:
     REMEMBER_COOKIE_SECURE = _is_vercel
     
     # Configuración de la base de datos (PostgreSQL en Supabase vía pg8000)
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or os.environ.get('SUPABASE_DATABASE_URL')
     if not SQLALCHEMY_DATABASE_URI:
         raise ValueError("FALTA DATABASE_URL en variables de entorno. Configura la conexión a la base de datos Supabase.")
     if SQLALCHEMY_DATABASE_URI.startswith("postgres://"):
@@ -72,6 +72,7 @@ class Config:
     # Configuración de Supabase
     SUPABASE_URL = os.environ.get("SUPABASE_URL")
     SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+    SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY")
     
     # Límite de subida de archivos (16 MB)
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024
