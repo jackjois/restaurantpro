@@ -1261,13 +1261,27 @@
 
             // ── Helpers ──
             async function apiPost(path, body) {
-                const res = await fetch(`${API_BASE}${path}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
-                    credentials: 'same-origin',
-                    body: body ? JSON.stringify(body) : '{}'
-                });
-                return await res.json();
+                try {
+                    const res = await fetch(`${API_BASE}${path}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+                        credentials: 'same-origin',
+                        body: body ? JSON.stringify(body) : '{}'
+                    });
+                    
+                    if (!res.ok) {
+                        try {
+                            const errData = await res.json();
+                            return { success: false, error: errData.error || 'Error del servidor' };
+                        } catch(e) {
+                            return { success: false, error: `Error HTTP: ${res.status}` };
+                        }
+                    }
+                    return await res.json();
+                } catch(err) {
+                    console.error('Fetch error:', err);
+                    return { success: false, error: 'Error de red o conexión al servidor' };
+                }
             }
 
             function toast(msg, type) {

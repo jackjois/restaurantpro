@@ -61,6 +61,8 @@ def index():
 # API: Estado completo del piso
 # ───────────────────────────────────────────────
 
+from sqlalchemy.orm import joinedload
+
 @floor_bp.route('/api/status')
 @login_required
 @role_required('admin', 'cashier', 'waiter')
@@ -68,7 +70,10 @@ def api_status():
     """Devuelve JSON con todo el estado actual del restaurante."""
     # --- Mesas con órdenes activas ---
     tables = Table.query.order_by(Table.number).all()
-    all_active_orders = Order.query.filter(
+    all_active_orders = Order.query.options(
+        joinedload(Order.items).joinedload(OrderItem.product),
+        joinedload(Order.waiter)
+    ).filter(
         Order.status.notin_(['paid', 'cancelled'])
     ).all()
     orders_map = {o.table_id: o for o in all_active_orders if o.table_id is not None}
