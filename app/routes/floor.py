@@ -18,6 +18,7 @@ from app.models.reservation import Reservation
 from app import db
 from datetime import datetime, timezone, timedelta
 from sqlalchemy import func
+from sqlalchemy.orm import joinedload
 from app.constants import PERU_TZ
 import logging
 
@@ -61,7 +62,6 @@ def index():
 # API: Estado completo del piso
 # ───────────────────────────────────────────────
 
-from sqlalchemy.orm import joinedload
 
 @floor_bp.route('/api/status')
 @login_required

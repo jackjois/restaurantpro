@@ -274,6 +274,28 @@
 </div>
 {% endif %}
 
+<!-- Modal de Cobro Exitoso (Ventanita emergente para imprimir voucher) -->
+<div class="modal fade" id="printVoucherModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="modal-body p-4 text-center">
+                <div class="bg-success bg-opacity-10 rounded-circle d-inline-flex p-3 mb-3">
+                    <i class="bi bi-check-circle-fill text-success fs-1"></i>
+                </div>
+                <h4 class="fw-bold text-dark mb-2">¡Cobro Exitoso!</h4>
+                <p class="text-muted small mb-4">El pedido ha sido pagado correctamente.</p>
+                
+                <button id="btnRealPrintVoucher" class="btn btn-success w-100 fw-bold py-3 mb-2" style="border-radius: 12px;">
+                    <i class="bi bi-printer-fill me-2"></i> Imprimir Voucher
+                </button>
+                <button type="button" class="btn btn-light w-100 fw-bold py-2" data-bs-dismiss="modal" style="border-radius: 12px;">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
