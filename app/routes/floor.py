@@ -776,7 +776,8 @@ def api_split_order(order_id):
                 unit_price=unit_price,
                 subtotal=split_subtotal,
                 status=orig_item.status,
-                notes=orig_item.notes
+                notes=orig_item.notes,
+                is_printed=orig_item.is_printed
             )
             db.session.add(new_item)
             
