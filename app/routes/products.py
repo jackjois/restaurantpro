@@ -163,12 +163,26 @@ def edit(id):
 def delete(id):
     product = Product.query.get_or_404(id)
     try:
-        # Soft-delete: desactivar en lugar de eliminar para preservar historial de ventas
-        product.is_available = False
+        # Eliminar imagen de Supabase Storage si existe
+        if product.image_url and 'supabase' in product.image_url:
+            try:
+                old_file = product.image_url.split('/')[-1].split('?')[0]
+                get_supabase().storage.from_('restaurant_assets').remove([old_file])
+            except Exception:
+                logger.exception('Error eliminando imagen de producto en Storage')
+                pass
+
+        # Desenlazar el producto de los items de orden para preservar historial de ventas
+        from app.models.order import OrderItem
+        OrderItem.query.filter_by(product_id=id).update({'product_id': None})
+
+        # Eliminar el producto de la base de datos (Hard delete)
+        db.session.delete(product)
         db.session.commit()
         
-        flash(f'El producto "{product.name}" ha sido desactivado correctamente. Puedes reactivarlo desde la edición.', 'success')
+        flash(f'El producto "{product.name}" ha sido eliminado correctamente de la base de datos.', 'success')
     except Exception as e:
         db.session.rollback()
-        flash('Error al desactivar el producto.', 'danger')
+        logger.exception(f'Error al eliminar el producto {id}')
+        flash('Error al eliminar el producto. Verifica que no tenga dependencias.', 'danger')
     return redirect(url_for('products.index'))
