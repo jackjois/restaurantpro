@@ -878,7 +878,7 @@
                                 selectedOrder = kotRes.order;
                                 renderSidebarItems();
                                 toast(`Enviado a cocina: ${kotRes.sent_count} item(s)`, 'success');
-                                window.open('/orders/' + selectedOrder.id + '/comanda', '_blank');
+                                window.open('/orders/comanda/' + selectedOrder.id, '_blank');
                             }
                         }
                     } else { toast(res.error || 'Error', 'error'); }
@@ -1002,7 +1002,7 @@
                     selectedOrder = res.order;
                     renderSidebarItems();
                     toast(`Pedido enviado a cocina: ${res.sent_count} item(s)`, 'success');
-                    window.open('/orders/' + selectedOrder.id + '/comanda', '_blank');
+                    window.open('/orders/comanda/' + selectedOrder.id, '_blank');
                 } else { toast(res.error || 'Error', 'error'); }
             });
 
