@@ -296,6 +296,9 @@ def api_create_external_order():
     data = request.get_json() or {}
     order_type = data.get('order_type')
     customer_name = data.get('customer_name', '').strip()
+    customer_phone = data.get('customer_phone', '').strip()
+    delivery_address = data.get('delivery_address', '').strip()
+    delivery_fee = safe_float(data.get('delivery_fee', 0.0))
     
     if order_type not in ['delivery', 'takeaway']:
         return jsonify({'success': False, 'error': 'Tipo de orden no válido.'}), 400
@@ -310,8 +313,11 @@ def api_create_external_order():
             order_number=generate_order_number(),
             order_type=order_type,
             customer_name=customer_name,
+            customer_phone=customer_phone,
+            delivery_address=delivery_address,
+            delivery_fee=delivery_fee,
             status='pending',
-            total_amount=0
+            total_amount=delivery_fee  # Añadimos el delivery fee al total inicial
         )
         db.session.add(new_order)
         db.session.commit()
