@@ -344,7 +344,12 @@ def process_split_pay(order_id):
 
     # Obtener los items reales desde la BD
     from app.models.order import OrderItem
-    selected_items = OrderItem.query.filter(OrderItem.id.in_(item_ids), OrderItem.order_id == order.id, OrderItem.is_paid == False).all()
+    selected_items = OrderItem.query.filter(
+        OrderItem.id.in_(item_ids), 
+        OrderItem.order_id == order.id, 
+        OrderItem.is_paid == False,
+        OrderItem.status != 'cancelled'
+    ).all()
     
     if not selected_items:
         flash('Los platos seleccionados ya fueron pagados o no existen.', 'danger')
