@@ -300,7 +300,8 @@ def remove_item(item_id):
 @login_required
 @role_required('admin', 'chef', 'cashier', 'waiter')
 def kitchen():
-    pending_items = db.session.query(OrderItem).join(Order).filter(OrderItem.status.in_(['pending', 'preparing']), Order.status.notin_(['cancelled', 'paid'])).order_by(OrderItem.created_at).all()
+    raw_items = db.session.query(OrderItem).join(Order).filter(OrderItem.status.in_(['pending', 'preparing']), Order.status.notin_(['cancelled', 'paid'])).order_by(OrderItem.created_at).all()
+    pending_items = [item for item in raw_items if item.kitchen_verb != 'Servir']
     return render_template('orders/kitchen.html', items=pending_items)
 
 @orders_bp.route('/kitchen/update/<int:item_id>', methods=['POST'])
