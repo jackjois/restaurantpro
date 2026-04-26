@@ -278,7 +278,7 @@
 
 {% block scripts %}
 <script>
-    // Auto-popup: Abrir tickets de impresión en ventana emergente sin salir del POS
+    // Mostrar modal interactivo para imprimir voucher y evitar bloqueos de popups
     document.addEventListener('DOMContentLoaded', function() {
         const params = new URLSearchParams(window.location.search);
         
@@ -290,11 +290,15 @@
             if (paymentId) {
                 url += '?payment_id=' + paymentId;
             }
-            window.open(
-                url,
-                'ticket_venta',
-                'width=800,height=650,scrollbars=yes,resizable=yes'
-            );
+            
+            const printModal = new bootstrap.Modal(document.getElementById('printVoucherModal'));
+            printModal.show();
+            
+            document.getElementById('btnRealPrintVoucher').addEventListener('click', function() {
+                window.open(url, 'ticket_venta', 'width=800,height=650,scrollbars=yes,resizable=yes');
+                printModal.hide();
+            });
+            
             // Limpiar URL para que no reabra al recargar
             window.history.replaceState({}, '', window.location.pathname);
         }
@@ -307,7 +311,6 @@
                 'ticket_z',
                 'width=800,height=700,scrollbars=yes,resizable=yes'
             );
-            // Limpiar URL para que no reabra al recargar
             window.history.replaceState({}, '', window.location.pathname);
         }
     });
