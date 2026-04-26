@@ -90,7 +90,7 @@
             <table style="margin:0;">
                 <tr class="fw-bold" style="font-size: 14px;">
                     <td>TOTAL:</td>
-                    <td class="text-right">S/ {{ "%.2f"|format(payment.amount if payment else order.total_amount) }}</td>
+                    <td class="text-right">S/ {{ "%.2f"|format(payment.amount if is_partial and payment else order.total_amount) }}</td>
                 </tr>
             </table>
         </div>

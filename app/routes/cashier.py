@@ -292,7 +292,7 @@ def pay(order_id):
             msg = f'¡Cobro exitoso! Se generó la {invoice_type.capitalize()} {doc_number} para la orden tipo {tipo}.'
         flash(msg, 'success')
         # UX: Redirigir al POS y abrir el ticket como ventana emergente automática
-        return redirect(url_for('cashier.pos', popup_ticket=order.id))
+        return redirect(url_for('cashier.pos', popup_ticket=order.id, payment_id=payment.id))
         
         
     except Exception as e:

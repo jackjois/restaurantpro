@@ -13,16 +13,18 @@
             <div class="card-body p-0">
                 <ul class="list-group list-group-flush">
                     {% for item in order.items %}
-                    <li class="list-group-item d-flex justify-content-between lh-sm py-3">
-                        <div>
-                            <h6 class="my-0">{{ item.quantity }}x {{ item.product.name }}</h6>
-                        </div>
-                        <span class="text-muted">S/ {{ item.subtotal }}</span>
-                    </li>
+                        {% if item.status != 'cancelled' and not item.is_paid %}
+                        <li class="list-group-item d-flex justify-content-between lh-sm py-3">
+                            <div>
+                                <h6 class="my-0">{{ item.quantity }}x {{ item.product.name }}</h6>
+                            </div>
+                            <span class="text-muted">S/ {{ item.subtotal }}</span>
+                        </li>
+                        {% endif %}
                     {% endfor %}
                     <li class="list-group-item d-flex justify-content-between bg-light py-3">
                         <span class="fw-bold text-success fs-5">Total a Pagar</span>
-                        <strong class="text-success fs-5">S/ {{ order.total_amount }}</strong>
+                        <strong class="text-success fs-5">S/ {{ "%.2f"|format(remaining_amount) }}</strong>
                     </li>
                 </ul>
             </div>
@@ -34,7 +36,7 @@
             <div class="card-body p-4">
                 <form action="{{ url_for('cashier.pay', order_id=order.id) }}" method="POST">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                    <input type="hidden" name="amount" value="{{ order.total_amount }}">
+                    <input type="hidden" name="amount" value="{{ remaining_amount }}">
                     
                     <h5 class="fw-bold mb-3 border-bottom pb-2">Método de Pago</h5>
                     <div class="row g-3 mb-4">
