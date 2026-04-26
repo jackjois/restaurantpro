@@ -175,9 +175,24 @@ def checkout(order_id):
         flash('Este pedido ya fue pagado.', 'warning')
         return redirect(url_for('cashier.pos'))
         
-    remaining_amount = sum(float(item.subtotal) for item in order.items if item.status != 'cancelled' and not item.is_paid)
+    # Calcular total real de la orden (incluye envío, propina, descuento)
+    subtotal = sum(float(item.subtotal) for item in order.items if item.status != 'cancelled')
+    discount_pct = float(order.discount_percent or 0)
+    tip_val = float(order.tip or 0)
+    delivery_fee_val = float(order.delivery_fee or 0)
+    
+    discount_amount = round(subtotal * discount_pct / 100, 2)
+    grand_total = round(subtotal - discount_amount + tip_val + delivery_fee_val, 2)
+    
+    # Restar lo que ya se haya pagado (por split_pay)
+    payments_done = Payment.query.filter_by(order_id=order.id, status='completed').all()
+    already_paid = sum(float(p.amount) for p in payments_done)
+    
+    remaining_amount = max(0.0, round(grand_total - already_paid, 2))
         
-    return render_template('cashier/payments.html', order=order, remaining_amount=remaining_amount)
+    return render_template('cashier/payments.html', order=order, remaining_amount=remaining_amount, 
+                           subtotal=subtotal, discount_amount=discount_amount, tip_val=tip_val, 
+                           delivery_fee_val=delivery_fee_val, already_paid=already_paid, grand_total=grand_total)
 
 @cashier_bp.route('/pay/<int:order_id>', methods=['POST'])
 @login_required
@@ -215,8 +230,20 @@ def pay(order_id):
         flash('Tipo de comprobante no válido.', 'danger')
         return redirect(url_for('cashier.checkout', order_id=order_id))
     
-    # Calculate remaining amount correctly
-    remaining_amount = sum(float(item.subtotal) for item in order.items if item.status != 'cancelled' and not item.is_paid)
+    # Calcular total real de la orden (incluye envío, propina, descuento)
+    subtotal = sum(float(item.subtotal) for item in order.items if item.status != 'cancelled')
+    discount_pct = float(order.discount_percent or 0)
+    tip_val = float(order.tip or 0)
+    delivery_fee_val = float(order.delivery_fee or 0)
+    
+    discount_amount = round(subtotal * discount_pct / 100, 2)
+    grand_total = round(subtotal - discount_amount + tip_val + delivery_fee_val, 2)
+    
+    # Restar lo que ya se haya pagado (por split_pay)
+    payments_done = Payment.query.filter_by(order_id=order.id, status='completed').all()
+    already_paid = sum(float(p.amount) for p in payments_done)
+    
+    remaining_amount = max(0.0, round(grand_total - already_paid, 2))
     
     if amount < remaining_amount:
         flash(f'El monto (S/ {amount:.2f}) no puede ser menor al saldo pendiente (S/ {remaining_amount:.2f}).', 'danger')

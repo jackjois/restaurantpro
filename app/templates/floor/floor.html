@@ -163,6 +163,10 @@
                         <span><input type="number" class="total-input" id="sbTipInput" value="0" min="0" step="0.50"
                                 style="width:70px;"></span>
                     </div>
+                    <div class="total-row" id="sbDeliveryFeeRow" style="display:none; color: var(--f-accent);">
+                        <span><i class="bi bi-truck"></i> Envío</span>
+                        <span id="sbDeliveryFee">S/ 0.00</span>
+                    </div>
                     <div class="total-row grand">
                         <span>Total</span>
                         <span id="sbGrandTotal">S/ 0.00</span>
@@ -685,6 +689,17 @@
                 document.getElementById('sbDiscountInput').value = o.discount_percent;
                 document.getElementById('sbDiscountAmount').textContent = `S/ ${Number(o.discount_amount).toFixed(2)}`;
                 document.getElementById('sbTipInput').value = o.tip;
+                
+                // Mostrar costo de envío si aplica
+                const deliveryFee = Number(o.delivery_fee || 0);
+                const deliveryRow = document.getElementById('sbDeliveryFeeRow');
+                if (deliveryFee > 0) {
+                    deliveryRow.style.display = 'flex';
+                    document.getElementById('sbDeliveryFee').textContent = `S/ ${deliveryFee.toFixed(2)}`;
+                } else {
+                    deliveryRow.style.display = 'none';
+                }
+                
                 document.getElementById('sbGrandTotal').textContent = `S/ ${Number(o.grand_total).toFixed(2)}`;
                 document.getElementById('btnCheckoutAmount').textContent = `S/ ${Number(o.grand_total).toFixed(2)}`;
                 document.getElementById('sbItemCount').textContent = o.items.length + ' items';

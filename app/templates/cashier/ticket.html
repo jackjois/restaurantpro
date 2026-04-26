@@ -82,6 +82,14 @@
         </div>
 
         <div class="mt-1 pt-1">
+            {% if order.delivery_fee and order.delivery_fee > 0 %}
+            <table style="margin:0; border-bottom: 1px dashed #000; padding-bottom: 5px; margin-bottom: 5px;">
+                <tr>
+                    <td>Costo de Envío:</td>
+                    <td class="text-right">S/ {{ "%.2f"|format(order.delivery_fee) }}</td>
+                </tr>
+            </table>
+            {% endif %}
             {% if invoice %}
             <table style="margin:0;">
                 <tr><td>Subtotal:</td><td class="text-right">S/ {{ "%.2f"|format(invoice.subtotal) }}</td></tr>

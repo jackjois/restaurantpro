@@ -229,8 +229,9 @@ def _serialize_order(order):
 
     discount_pct = float(order.discount_percent or 0)
     tip_val = float(order.tip or 0)
+    delivery_fee_val = float(order.delivery_fee or 0)
     discount_amount = round(subtotal * discount_pct / 100, 2)
-    grand_total = round(subtotal - discount_amount + tip_val, 2)
+    grand_total = round(subtotal - discount_amount + tip_val + delivery_fee_val, 2)
 
     waiter_name = ''
     if order.waiter:
@@ -241,6 +242,9 @@ def _serialize_order(order):
         'order_number': order.order_number,
         'order_type': order.order_type,
         'customer_name': order.customer_name or '',
+        'customer_phone': order.customer_phone or '',
+        'delivery_address': order.delivery_address or '',
+        'delivery_fee': delivery_fee_val,
         'status': order.status,
         'waiter': waiter_name,
         'items': items,

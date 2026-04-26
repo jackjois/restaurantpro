@@ -22,6 +22,36 @@
                         </li>
                         {% endif %}
                     {% endfor %}
+                    
+                    <li class="list-group-item d-flex justify-content-between text-muted py-2">
+                        <span>Subtotal de Platos</span>
+                        <span>S/ {{ "%.2f"|format(subtotal) }}</span>
+                    </li>
+                    {% if delivery_fee_val > 0 %}
+                    <li class="list-group-item d-flex justify-content-between text-muted py-2">
+                        <span>Costo de Envío</span>
+                        <span>S/ {{ "%.2f"|format(delivery_fee_val) }}</span>
+                    </li>
+                    {% endif %}
+                    {% if discount_amount > 0 %}
+                    <li class="list-group-item d-flex justify-content-between text-danger py-2">
+                        <span>Descuento</span>
+                        <span>- S/ {{ "%.2f"|format(discount_amount) }}</span>
+                    </li>
+                    {% endif %}
+                    {% if tip_val > 0 %}
+                    <li class="list-group-item d-flex justify-content-between text-muted py-2">
+                        <span>Propina</span>
+                        <span>S/ {{ "%.2f"|format(tip_val) }}</span>
+                    </li>
+                    {% endif %}
+                    {% if already_paid > 0 %}
+                    <li class="list-group-item d-flex justify-content-between text-primary py-2">
+                        <span>Ya Pagado</span>
+                        <span>- S/ {{ "%.2f"|format(already_paid) }}</span>
+                    </li>
+                    {% endif %}
+
                     <li class="list-group-item d-flex justify-content-between bg-light py-3">
                         <span class="fw-bold text-success fs-5">Total a Pagar</span>
                         <strong class="text-success fs-5">S/ {{ "%.2f"|format(remaining_amount) }}</strong>

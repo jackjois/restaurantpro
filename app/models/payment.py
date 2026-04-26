@@ -15,7 +15,7 @@ class Payment(db.Model):
     cash_session_id = db.Column(db.Integer, db.ForeignKey('cash_sessions.id'), nullable=True)
     created_at = db.Column(db.DateTime(timezone=True), default=_now_utc)
     
-    order = db.relationship('Order', backref=db.backref('payment_info', uselist=False))
+    order = db.relationship('Order', backref=db.backref('payments', lazy=True))
     invoice = db.relationship('Invoice', backref=db.backref('payment_rel', lazy=True, uselist=False))
     order_items = db.relationship('OrderItem', backref='payment_rel_item', lazy=True)
 
