@@ -1,0 +1,143 @@
+{% extends 'layout.html' %}
+
+{% block title %}Cobro Dividido - RestaurantPro{% endblock %}
+{% block header_title %}Cuentas Separadas - {% if order.table_rel %}Mesa {{ order.table_rel.number }}{% else %}Pedido {{ 'Delivery' if order.order_type == 'delivery' else 'Para Llevar' }}{% endif %}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 mb-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-primary text-white py-3">
+                <h5 class="mb-0 fw-bold"><i class="bi bi-ui-checks-grid me-2"></i>Selecciona los platos a cobrar</h5>
+            </div>
+            <div class="card-body p-0">
+                <form action="{{ url_for('cashier.process_split_pay', order_id=order.id) }}" method="POST" id="splitPayForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <ul class="list-group list-group-flush">
+                        {% set ns = namespace(has_items=false) %}
+                        {% for item in order.items %}
+                            {% if item.status != 'cancelled' and not item.is_paid %}
+                            {% set ns.has_items = true %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                                <div>
+                                    <input class="form-check-input me-2 split-item-checkbox" type="checkbox" name="item_ids" value="{{ item.id }}" data-price="{{ item.subtotal }}" id="item_{{ item.id }}">
+                                    <label class="form-check-label stretched-link" for="item_{{ item.id }}">
+                                        <strong>{{ item.quantity }}x {{ item.product.name }}</strong>
+                                    </label>
+                                </div>
+                                <span class="badge bg-light text-dark fs-6 border">S/ {{ "%.2f"|format(item.subtotal) }}</span>
+                            </li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if not ns.has_items %}
+                            <li class="list-group-item py-4 text-center text-muted">
+                                <i class="bi bi-check-circle-fill fs-1 text-success mb-2 d-block"></i>
+                                Todos los platos de esta orden ya fueron pagados.
+                            </li>
+                        {% endif %}
+                        
+                        <li class="list-group-item d-flex justify-content-between bg-light py-3 border-top-2 border-primary">
+                            <span class="fw-bold text-primary fs-5">Subtotal Seleccionado</span>
+                            <strong class="text-primary fs-4" id="selectedTotal">S/ 0.00</strong>
+                        </li>
+                    </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card shadow-sm border-0 {% if not ns.has_items %}opacity-50{% endif %}">
+            <div class="card-body p-4">
+                    <h5 class="fw-bold mb-3 border-bottom pb-2">Método de Pago</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Forma de Pago</label>
+                            <select class="form-select" name="payment_method" required>
+                                <option value="cash">Efectivo</option>
+                                <option value="card">Tarjeta (Visa/Mastercard)</option>
+                                <option value="yape">Yape</option>
+                                <option value="plin">Plin</option>
+                                <option value="transfer">Transferencia</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">N° Referencia <small class="text-muted">(Opcional)</small></label>
+                            <input type="text" class="form-control" name="reference_code" placeholder="Ej: Ultimos 4 dígitos">
+                        </div>
+                    </div>
+
+                    <h5 class="fw-bold mb-3 border-bottom pb-2">Datos del Comprobante Parcial</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-12">
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input invoice-type" type="radio" name="invoice_type" id="boleta" value="boleta" checked>
+                                <label class="form-check-label fw-bold" for="boleta">Boleta</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input invoice-type" type="radio" name="invoice_type" id="factura" value="factura">
+                                <label class="form-check-label fw-bold" for="factura">Factura</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" id="doc_label">DNI</label>
+                            <input type="text" class="form-control" name="customer_document" placeholder="00000000">
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label" id="name_label">Nombre / Razón Social</label>
+                            <input type="text" class="form-control" name="customer_name" placeholder="Cliente Varios">
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+                    <button class="btn btn-primary btn-lg w-100 fw-bold" type="submit" id="btnSubmitSplit" disabled>
+                        <i class="bi bi-check-circle me-2"></i> Cobrar Selección
+                    </button>
+                    <a href="{{ url_for('cashier.pos') }}" class="btn btn-light w-100 mt-2">Volver</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const checkboxes = document.querySelectorAll('.split-item-checkbox');
+        const totalEl = document.getElementById('selectedTotal');
+        const btnSubmit = document.getElementById('btnSubmitSplit');
+        
+        function calcularTotal() {
+            let total = 0;
+            let count = 0;
+            checkboxes.forEach(cb => {
+                if(cb.checked) {
+                    total += parseFloat(cb.dataset.price);
+                    count++;
+                }
+            });
+            totalEl.innerText = `S/ ${total.toFixed(2)}`;
+            btnSubmit.disabled = (count === 0);
+        }
+
+        checkboxes.forEach(cb => {
+            cb.addEventListener('change', calcularTotal);
+        });
+
+        // Cambio DNI / RUC
+        document.querySelectorAll('.invoice-type').forEach((elem) => {
+            elem.addEventListener("change", function(event) {
+                let docLabel = document.getElementById("doc_label");
+                if (event.target.value === "factura") {
+                    docLabel.innerText = "RUC (Requerido)";
+                    document.querySelector('input[name="customer_document"]').required = true;
+                } else {
+                    docLabel.innerText = "DNI";
+                    document.querySelector('input[name="customer_document"]').required = false;
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

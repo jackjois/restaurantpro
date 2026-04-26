@@ -180,9 +180,14 @@
             <div class="card-footer bg-transparent border-0 pt-0 mt-auto position-relative z-1 px-3">
                 {% if o.total_amount > 0 %}
                     {% if current_session %}
-                        <a href="{{ url_for('cashier.checkout', order_id=o.id) }}" class="btn btn-charge w-100 d-block text-center text-decoration-none shadow-sm">
-                            <i class="bi bi-currency-dollar"></i> Cobrar Ahora
-                        </a>
+                        <div class="d-flex gap-2">
+                            <a href="{{ url_for('cashier.checkout', order_id=o.id) }}" class="btn btn-charge w-100 d-block text-center text-decoration-none shadow-sm">
+                                <i class="bi bi-currency-dollar"></i> Cobrar
+                            </a>
+                            <a href="{{ url_for('cashier.split_pay', order_id=o.id) }}" class="btn btn-outline-primary w-100 d-block text-center text-decoration-none shadow-sm" style="border-radius: 14px; font-weight: 800; padding: 14px;">
+                                <i class="bi bi-layout-split"></i> Dividir
+                            </a>
+                        </div>
                     {% else %}
                         <button class="btn btn-secondary w-100 fw-bold border-0 text-white" style="border-radius:14px; padding: 14px; background:#a3aed1;" disabled>Caja Cerrada</button>
                     {% endif %}
@@ -279,9 +284,14 @@
         
         // Popup de Ticket de Venta (boleta/factura) — después de cobrar
         const popupTicket = params.get('popup_ticket');
+        const paymentId = params.get('payment_id');
         if (popupTicket) {
+            let url = '{{ url_for("cashier.ticket", order_id=0) }}'.replace('/0', '/' + popupTicket);
+            if (paymentId) {
+                url += '?payment_id=' + paymentId;
+            }
             window.open(
-                '{{ url_for("cashier.ticket", order_id=0) }}'.replace('/0', '/' + popupTicket),
+                url,
                 'ticket_venta',
                 'width=800,height=650,scrollbars=yes,resizable=yes'
             );

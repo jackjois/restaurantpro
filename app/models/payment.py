@@ -17,6 +17,7 @@ class Payment(db.Model):
     
     order = db.relationship('Order', backref=db.backref('payment_info', uselist=False))
     invoice = db.relationship('Invoice', backref=db.backref('payment_rel', lazy=True, uselist=False))
+    order_items = db.relationship('OrderItem', backref='payment_rel_item', lazy=True)
 
 class Invoice(db.Model):
     __tablename__ = 'invoices'

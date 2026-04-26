@@ -49,7 +49,15 @@ def pos(table_id):
     
     products = Product.query.filter_by(is_available=True).all()
     categories = Category.query.all()
-    return render_template('orders/pos.html', table=table, products=products, categories=categories)
+    
+    # Asegurar que exista el producto Taper para el cobro rápido
+    taper = Product.query.filter(Product.name.ilike('%Taper%')).first()
+    if not taper:
+        taper = Product(name='Taper Descartable', price=1.00, is_available=True, track_stock=False)
+        db.session.add(taper)
+        db.session.commit()
+        
+    return render_template('orders/pos.html', table=table, products=products, categories=categories, taper=taper)
 
 @orders_bp.route('/submit_pos/<int:table_id>', methods=['POST'])
 @login_required
@@ -366,7 +374,29 @@ def cancel(id):
 @role_required('admin', 'cashier', 'waiter')
 def comanda(order_id):
     order = Order.query.get_or_404(order_id)
-    return render_template('orders/comanda.html', order=order)
+    reprint = request.args.get('reprint', type=int, default=0)
+    
+    # Filtrar ítems para la comanda
+    items_to_print = []
+    for item in order.items:
+        if item.status != 'cancelled':
+            if reprint == 1 or not item.is_printed:
+                items_to_print.append(item)
+                
+    # Si no hay ítems nuevos y no es una reimpresión, podríamos avisar
+    if not items_to_print and reprint == 0:
+        flash('No hay platos nuevos para enviar a cocina.', 'info')
+        return "<script>window.close();</script>"
+        
+    html = render_template('orders/comanda.html', order=order, items_to_print=items_to_print, reprint=reprint)
+    
+    # Marcar como impreso después de generar el HTML
+    if reprint == 0:
+        for item in items_to_print:
+            item.is_printed = True
+        db.session.commit()
+        
+    return html
 
 @orders_bp.route('/notifications/read', methods=['POST'])
 @login_required

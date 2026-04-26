@@ -175,7 +175,9 @@ def checkout(order_id):
         flash('Este pedido ya fue pagado.', 'warning')
         return redirect(url_for('cashier.pos'))
         
-    return render_template('cashier/payments.html', order=order)
+    remaining_amount = sum(float(item.subtotal) for item in order.items if item.status != 'cancelled' and not item.is_paid)
+        
+    return render_template('cashier/payments.html', order=order, remaining_amount=remaining_amount)
 
 @cashier_bp.route('/pay/<int:order_id>', methods=['POST'])
 @login_required
@@ -213,8 +215,11 @@ def pay(order_id):
         flash('Tipo de comprobante no válido.', 'danger')
         return redirect(url_for('cashier.checkout', order_id=order_id))
     
-    if amount < float(order.total_amount):
-        flash(f'El monto (S/ {amount:.2f}) no puede ser menor al total de la orden (S/ {order.total_amount}).', 'danger')
+    # Calculate remaining amount correctly
+    remaining_amount = sum(float(item.subtotal) for item in order.items if item.status != 'cancelled' and not item.is_paid)
+    
+    if amount < remaining_amount:
+        flash(f'El monto (S/ {amount:.2f}) no puede ser menor al saldo pendiente (S/ {remaining_amount:.2f}).', 'danger')
         return redirect(url_for('cashier.checkout', order_id=order_id))
     
     try:
@@ -259,11 +264,12 @@ def pay(order_id):
         db.session.add(invoice)
         
         order.status = 'paid'
-        # Auto-marcar todos los items como entregados al cobrar
-        # (si el cliente pagó, la comida ya fue servida)
+        # Auto-marcar todos los items RESTANTES como entregados y pagados
         for item in order.items:
-            if item.status != 'cancelled':
+            if item.status != 'cancelled' and not item.is_paid:
                 item.status = 'delivered'
+                item.is_paid = True
+                item.payment_id = payment.id
         table = Table.query.get(order.table_id)
         
         if table:
@@ -296,12 +302,143 @@ def pay(order_id):
         
     return redirect(url_for('cashier.pos'))
 
+@cashier_bp.route('/split_pay/<int:order_id>')
+@login_required
+@role_required('admin', 'cashier')
+def split_pay(order_id):
+    current_session = CashSession.query.filter_by(status='open').first()
+    if not current_session:
+        flash('Es necesario abrir la caja antes de cobrar.', 'danger')
+        return redirect(url_for('cashier.pos'))
+
+    order = Order.query.get_or_404(order_id)
+    if order.status == 'paid':
+        flash('Este pedido ya fue pagado por completo.', 'warning')
+        return redirect(url_for('cashier.pos'))
+        
+    return render_template('cashier/split_pay.html', order=order)
+
+@cashier_bp.route('/process_split_pay/<int:order_id>', methods=['POST'])
+@login_required
+@role_required('admin', 'cashier')
+def process_split_pay(order_id):
+    current_session = CashSession.query.filter_by(status='open').first()
+    if not current_session:
+        flash('No hay caja abierta.', 'danger')
+        return redirect(url_for('cashier.pos'))
+
+    order = db.session.get(Order, order_id, with_for_update=True)
+    if not order:
+        abort(404)
+        
+    item_ids = request.form.getlist('item_ids')
+    if not item_ids:
+        flash('No seleccionaste ningún plato para cobrar.', 'warning')
+        return redirect(url_for('cashier.split_pay', order_id=order_id))
+
+    payment_method = request.form.get('payment_method')
+    reference_code = request.form.get('reference_code', '')
+    invoice_type = request.form.get('invoice_type')
+    customer_name = request.form.get('customer_name', 'Cliente Varios')
+    customer_document = request.form.get('customer_document', '00000000')
+
+    # Obtener los items reales desde la BD
+    from app.models.order import OrderItem
+    selected_items = OrderItem.query.filter(OrderItem.id.in_(item_ids), OrderItem.order_id == order.id, OrderItem.is_paid == False).all()
+    
+    if not selected_items:
+        flash('Los platos seleccionados ya fueron pagados o no existen.', 'danger')
+        return redirect(url_for('cashier.split_pay', order_id=order_id))
+
+    amount = sum(float(item.subtotal) for item in selected_items)
+    
+    try:
+        payment = Payment(
+            order_id=order.id, amount=amount, payment_method=payment_method,
+            reference_code=reference_code, status='completed', created_by=current_user.id,
+            cash_session_id=current_session.id
+        )
+        db.session.add(payment)
+        db.session.flush() 
+
+        # Lógica de Facturación (simplificada, igual que pay)
+        prefix = 'B001' if invoice_type == 'boleta' else 'F001'
+        try:
+            seq_name = 'boleta_seq' if invoice_type == 'boleta' else 'factura_seq'
+            next_num = db.session.execute(db.text(f"SELECT nextval('{seq_name}')")).scalar()
+        except Exception:
+            last_invoice = Invoice.query.filter(Invoice.document_number.like(f"{prefix}-%")).order_by(Invoice.id.desc()).first()
+            next_num = 1
+            if last_invoice:
+                try:
+                    next_num = int(last_invoice.document_number.split('-')[1]) + 1
+                except:
+                    pass
+        doc_number = f"{prefix}-{next_num:06d}"
+        
+        tax_rate = 0.18
+        subtotal = round(amount / (1 + tax_rate), 2)
+        tax_amount = round(amount - subtotal, 2)
+        
+        invoice = Invoice(
+            payment_id=payment.id, invoice_type=invoice_type, document_number=doc_number,
+            customer_name=customer_name, customer_document=customer_document,
+            subtotal=subtotal, tax_amount=tax_amount, total_amount=amount
+        )
+        db.session.add(invoice)
+
+        # Actualizar items
+        for item in selected_items:
+            item.is_paid = True
+            item.payment_id = payment.id
+            item.status = 'delivered' # Si ya lo pagaron, se asume entregado
+
+        # Revisar si aún quedan platos sin pagar en toda la orden
+        all_paid = all(item.is_paid or item.status == 'cancelled' for item in order.items)
+        
+        if all_paid:
+            order.status = 'paid'
+            table = Table.query.get(order.table_id)
+            if table:
+                unreads = Notification.query.filter(Notification.is_read == False, Notification.message.like(f"%Mesa {table.number}%")).all()
+                for n in unreads: n.is_read = True
+                table.status = 'free'
+            msg_extra = "¡Todos los platos fueron pagados! Mesa liberada."
+        else:
+            msg_extra = "Cobro parcial exitoso. Aún quedan platos por pagar."
+
+        AppSignal.emit('payment_completed', 'orders')
+        db.session.commit()
+        
+        flash(f'Comprobante {doc_number} generado por S/ {amount:.2f}. {msg_extra}', 'success')
+        # Redirige enviando el ID del Payment (no del order_id) para generar el ticket solo de esto
+        # Bueno, el popup_ticket actual toma el order_id. Necesitaremos modificar /ticket/<int:order_id> o crear uno para pago parcial.
+        # Para no complicarnos, pasemos payment_id.
+        return redirect(url_for('cashier.pos', popup_ticket=order.id, payment_id=payment.id))
+
+    except Exception as e:
+        db.session.rollback()
+        flash('Error al procesar el pago parcial.', 'danger')
+        logger.exception("Error en process_split_pay")
+        return redirect(url_for('cashier.pos'))
+
 @cashier_bp.route('/ticket/<int:order_id>')
 @login_required
 @role_required('admin', 'cashier')
 def ticket(order_id):
     order = Order.query.get_or_404(order_id)
-    payment = Payment.query.filter_by(order_id=order.id).first()
+    payment_id = request.args.get('payment_id', type=int)
+    
+    if payment_id:
+        payment = Payment.query.get_or_404(payment_id)
+        # Si es pago parcial, los items de la orden en el ticket deben ser SOLO los de este pago
+        items_to_print = [item for item in order.items if item.payment_id == payment_id]
+        is_partial = True
+    else:
+        payment = Payment.query.filter_by(order_id=order.id).first()
+        items_to_print = [item for item in order.items if item.status != 'cancelled']
+        is_partial = False
+        
     invoice = Invoice.query.filter_by(payment_id=payment.id).first() if payment else None
     
     # Convertir fechas a hora Perú para el ticket impreso
@@ -311,4 +448,4 @@ def ticket(order_id):
             order_time_peru = order_time_peru.replace(tzinfo=timezone.utc)
         order_time_peru = order_time_peru.astimezone(PERU_TZ)
     
-    return render_template('cashier/ticket.html', order=order, payment=payment, invoice=invoice, order_time_peru=order_time_peru)
+    return render_template('cashier/ticket.html', order=order, payment=payment, invoice=invoice, order_time_peru=order_time_peru, items_to_print=items_to_print, is_partial=is_partial)

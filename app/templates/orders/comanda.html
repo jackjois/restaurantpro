@@ -48,9 +48,12 @@
             {% endif %}
         </div>
 
-        <div style="margin-top: 15px;">
-            {% for item in order.items %}
-            {% if item.status != 'cancelled' %}
+            {% if reprint == 1 %}
+            <div class="fw-bold text-center" style="font-size: 16px; margin-bottom: 10px; border: 1px solid #000;">*** REIMPRESIÓN ***</div>
+            {% endif %}
+            
+            {% for item in items_to_print %}
+            {% if item.kitchen_verb != 'Servir' %}
             <div class="item-row">
                 <div class="fw-bold text-large">{{ item.quantity }}x {{ item.product.name }}</div>
                 {% if item.notes %}

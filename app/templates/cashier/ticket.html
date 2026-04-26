@@ -42,10 +42,10 @@
         
         <div class="border-top border-bottom mt-1 mb-1 py-1 text-center">
             {% if invoice %}
-                <div class="fw-bold">{{ invoice.invoice_type | upper }} ELECTRÓNICA</div>
+                <div class="fw-bold">{{ invoice.invoice_type | upper }} ELECTRÓNICA{% if is_partial %} (PARCIAL){% endif %}</div>
                 <div>{{ invoice.document_number }}</div>
             {% else %}
-                <div class="fw-bold">TICKET DE VENTA</div>
+                <div class="fw-bold">TICKET DE VENTA{% if is_partial %} (PARCIAL){% endif %}</div>
                 <div>{{ order.order_number }}</div>
             {% endif %}
         </div>
@@ -70,14 +70,12 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for item in order.items %}
-                    {% if item.status != 'cancelled' %}
+                    {% for item in items_to_print %}
                     <tr>
                         <td>{{ item.quantity }}</td>
                         <td>{{ item.product.name }}</td>
                         <td class="text-right">S/ {{ "%.2f"|format(item.subtotal) }}</td>
                     </tr>
-                    {% endif %}
                     {% endfor %}
                 </tbody>
             </table>
@@ -92,7 +90,7 @@
             <table style="margin:0;">
                 <tr class="fw-bold" style="font-size: 14px;">
                     <td>TOTAL:</td>
-                    <td class="text-right">S/ {{ "%.2f"|format(order.total_amount) }}</td>
+                    <td class="text-right">S/ {{ "%.2f"|format(payment.amount if payment else order.total_amount) }}</td>
                 </tr>
             </table>
         </div>
