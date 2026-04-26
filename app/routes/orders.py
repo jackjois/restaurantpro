@@ -92,8 +92,8 @@ def submit_pos(table_id):
         for item in cart:
             product = Product.query.get(item['id'])
             if product:
-                qty = int(item['cantidad'])
-                subtotal = float(product.price) * qty
+                qty = safe_int(item.get('cantidad'), default=1)
+                subtotal = safe_float(product.price, default=0.0) * qty
                 total += subtotal
                 
                 order_item = OrderItem(

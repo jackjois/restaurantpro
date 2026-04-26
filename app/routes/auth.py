@@ -113,6 +113,11 @@ def register():
         email = request.form.get('email')
         password = request.form.get('password')
         
+        # Validación de email
+        if email and not re.match(r"[^@]+@[^@]+\.[^@]+", email):
+            flash('El formato del correo electrónico no es válido.', 'danger')
+            return redirect(url_for('auth.register'))
+        
         if not password:
             flash('La contraseña es requerida.', 'danger')
             return redirect(url_for('auth.register'))
