@@ -160,13 +160,13 @@
             <div class="card-body">
                 <!-- Meta Info Superior -->
                 <div class="d-flex justify-content-between align-items-center mb-4 kds-meta">
-                    <span class="fs-4 fw-bold text-white">
+                    <span class="fs-3 fw-bold text-white text-uppercase">
                         {% if item.order_rel.order_type == 'delivery' %}
-                        <i class="bi bi-bicycle text-danger"></i> {{ item.order_rel.customer_name|upper }}
+                        <span class="text-danger"><i class="bi bi-bicycle"></i> DELIVERY</span> - {{ item.order_rel.customer_name }}
                         {% elif item.order_rel.order_type == 'takeaway' %}
-                        <i class="bi bi-bag-check-fill text-warning"></i> {{ item.order_rel.customer_name|upper }}
+                        <span class="text-warning"><i class="bi bi-bag-check-fill"></i> PARA LLEVAR</span> - {{ item.order_rel.customer_name }}
                         {% else %}
-                        {% if item.order_rel.table_rel %}MESA {{ item.order_rel.table_rel.number }}{% else %}EXTERNO{% endif %}
+                        <span class="text-info"><i class="bi bi-grid-3x3-gap-fill"></i> MESA {% if item.order_rel.table_rel %}{{ item.order_rel.table_rel.number }}{% else %}EXTERNO{% endif %}</span>
                         {% endif %}
                     </span>
                     <div class="d-flex align-items-center">
