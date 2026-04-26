@@ -88,6 +88,18 @@
                 <!-- Rendered by JS -->
             </div>
 
+            <!-- External Orders -->
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;">
+                <div class="floor-section-title">Órdenes Externas (Delivery / Para Llevar)</div>
+                <div style="display:flex;gap:10px;">
+                    <button class="btn-secondary-floor" onclick="openExternalOrderModal('takeaway')" style="padding: 6px 12px; font-size: 0.8rem;"><i class="bi bi-bag"></i> Nuevo Para Llevar</button>
+                    <button class="btn-secondary-floor" onclick="openExternalOrderModal('delivery')" style="padding: 6px 12px; font-size: 0.8rem;"><i class="bi bi-motorcycle"></i> Nuevo Delivery</button>
+                </div>
+            </div>
+            <div class="tables-grid" id="externalOrdersGrid" style="margin-bottom:20px;">
+                <!-- Rendered by JS -->
+            </div>
+
             <!-- Menu -->
             <div class="floor-section-title">Menú — Click en un producto para agregarlo a la mesa seleccionada</div>
             <div class="menu-tabs" id="menuTabs">
@@ -289,6 +301,54 @@
             </div>
         </div>
     </div>
+
+    <!-- Modal: Nueva Orden Externa -->
+    <div class="floor-modal-backdrop" id="modalExternalOrder">
+        <div class="floor-modal">
+            <div class="floor-modal-header">
+                <div class="floor-modal-title" id="extOrderModalTitle">Nueva Orden</div>
+                <button class="btn-close-modal" onclick="closeModal('modalExternalOrder')"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div class="floor-modal-body">
+                <input type="hidden" id="extOrderType">
+                <div class="floor-form-group">
+                    <label>Nombre del Cliente *</label>
+                    <input type="text" id="extCustomerName" class="floor-input" required placeholder="Ej. Juan Pérez">
+                </div>
+            </div>
+            <div class="floor-modal-footer">
+                <button class="btn-floor btn-floor-cancel" onclick="closeModal('modalExternalOrder')">Cancelar</button>
+                <button class="btn-floor btn-floor-primary" onclick="submitExternalOrder()">Crear Orden</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Añadir Producto -->
+    <div class="floor-modal-backdrop" id="modalAddProduct">
+        <div class="floor-modal" style="max-width: 400px;">
+            <div class="floor-modal-header">
+                <div class="floor-modal-title" id="addProdName">Producto</div>
+                <button class="btn-close-modal" onclick="closeModal('modalAddProduct')"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div class="floor-modal-body text-center">
+                <div id="addProdPrice" style="font-size: 1.5rem; font-weight: 800; color: var(--f-primary); margin-bottom: 15px;">S/ 0.00</div>
+                <input type="hidden" id="addProdId">
+                <div class="qty-control" style="justify-content: center; transform: scale(1.3); margin-bottom: 25px;">
+                    <button class="qty-btn" type="button" onclick="const q=document.getElementById('addProdQty'); if(q.value>1) q.value--">−</button>
+                    <input type="number" id="addProdQty" value="1" min="1" max="99" style="width: 40px; text-align: center; border: none; font-weight: bold; background: transparent; font-size: 1.1rem;" readonly>
+                    <button class="qty-btn" type="button" onclick="const q=document.getElementById('addProdQty'); if(q.value<99) q.value++">+</button>
+                </div>
+                <div class="floor-form-group" style="text-align: left;">
+                    <label>Notas Especiales a Cocina</label>
+                    <input type="text" id="addProdNotes" class="floor-input" placeholder="Ej. Sin cebolla, bien cocido...">
+                </div>
+            </div>
+            <div class="floor-modal-footer" style="flex-direction: column; gap: 8px;">
+                <button class="btn-floor btn-floor-primary" style="width: 100%;" onclick="confirmAddProduct(false)"><i class="bi bi-plus-circle"></i> Añadir a la cuenta</button>
+                <button class="btn-secondary-floor" style="width: 100%; border-color: rgba(67, 24, 255, 0.2);" onclick="confirmAddProduct(true)"><i class="bi bi-printer"></i> Añadir e Imprimir en Cocina</button>
+            </div>
+        </div>
+    </div>
     <!-- Toast -->
     <div class="floor-toast" id="floorToast"></div>
 
@@ -307,8 +367,9 @@
             const SUPABASE_KEY = "{{ supabase_key }}";
 
             // ── State ──
-            let state = { tables: [], categories: [], products: [], reservations: [], kpis: {} };
+            let state = { tables: [], external_orders: [], categories: [], products: [], reservations: [], kpis: {} };
             let selectedTableId = null;
+            let selectedExternalOrderId = null;
             let selectedOrder = null;
             let activeCategory = 'all';
             let ctxTableId = null;
@@ -397,12 +458,17 @@
                 renderKPIs();
                 renderTicker();
                 renderTables();
+                renderExternalOrders();
                 renderMenuTabs();
                 renderMenuGrid();
                 renderReservationsDrawer();
                 if (selectedTableId) {
                     const t = state.tables.find(t => t.id === selectedTableId);
                     if (t) selectTable(t);
+                    else clearSidebar();
+                } else if (selectedExternalOrderId) {
+                    const eo = state.external_orders.find(o => o.id === selectedExternalOrderId);
+                    if (eo) selectExternalOrder(eo);
                     else clearSidebar();
                 }
             }
@@ -461,6 +527,35 @@
                 });
             }
 
+            function renderExternalOrders() {
+                const $extGrid = document.getElementById('externalOrdersGrid');
+                let html = '';
+                const extOrders = state.external_orders || [];
+                
+                extOrders.forEach(o => {
+                    const sel = o.id === selectedExternalOrderId ? ' selected' : '';
+                    const amt = `<div class="t-amount">S/ ${Number(o.grand_total).toFixed(2)}</div>`;
+                    const badgeText = o.order_type === 'delivery' ? 'Delivery' : 'Para Llevar';
+                    const icon = o.order_type === 'delivery' ? 'bi-motorcycle' : 'bi-bag';
+                    html += `<div class="table-tile st-occupied${sel}" data-oid="${o.id}">
+                <div class="t-label">${o.order_number}</div>
+                <div class="t-num" style="font-size: 1.2rem; margin: 4px 0;"><i class="bi ${icon}"></i></div>
+                <div class="t-seats" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;"><i class="bi bi-person"></i> ${escapeHtml(o.customer_name)}</div>
+                <span class="t-badge" style="background:var(--f-accent);">${badgeText}</span>
+                ${amt}
+            </div>`;
+                });
+                if (!html) html = '<div style="grid-column:1/-1;text-align:center;color:var(--f-text-dim);padding:24px;">No hay órdenes externas activas.</div>';
+                $extGrid.innerHTML = html;
+
+                $extGrid.querySelectorAll('.table-tile').forEach(el => {
+                    el.addEventListener('click', () => {
+                        const eo = state.external_orders.find(x => x.id === +el.dataset.oid);
+                        if (eo) selectExternalOrder(eo);
+                    });
+                });
+            }
+
             // ── Table Click Handler ──
             async function onTableClick(table) {
                 // Siempre seleccionar la mesa, sin importar su estado
@@ -469,9 +564,11 @@
 
             function selectTable(table) {
                 selectedTableId = table.id;
+                selectedExternalOrderId = null;
                 selectedOrder = table.active_order;
 
                 $grid.querySelectorAll('.table-tile').forEach(el => el.classList.toggle('selected', +el.dataset.id === table.id));
+                document.getElementById('externalOrdersGrid').querySelectorAll('.table-tile').forEach(el => el.classList.remove('selected'));
 
                 // Mostrar el sidebar con la info de la mesa, tenga o no orden activa
                 $sbEmpty.style.display = 'none';
@@ -484,8 +581,28 @@
                 renderSidebarTotals();
             }
 
+            function selectExternalOrder(order) {
+                selectedExternalOrderId = order.id;
+                selectedTableId = null;
+                selectedOrder = order;
+
+                $grid.querySelectorAll('.table-tile').forEach(el => el.classList.remove('selected'));
+                document.getElementById('externalOrdersGrid').querySelectorAll('.table-tile').forEach(el => el.classList.toggle('selected', +el.dataset.oid === order.id));
+
+                $sbEmpty.style.display = 'none';
+                $sbContent.style.display = 'flex';
+
+                const typeText = order.order_type === 'delivery' ? 'Delivery' : 'Para Llevar';
+                document.getElementById('sbTableNum').textContent = typeText;
+                document.getElementById('sbTableMeta').textContent = '· ' + escapeHtml(order.customer_name);
+                document.getElementById('sbWaiter').textContent = order.waiter || '{{ current_user.username }}';
+                renderSidebarItems();
+                renderSidebarTotals();
+            }
+
             function clearSidebar() {
                 selectedTableId = null;
+                selectedExternalOrderId = null;
                 selectedOrder = null;
                 $sbEmpty.style.display = 'flex';
                 $sbContent.style.display = 'none';
@@ -600,23 +717,72 @@
                 $menuGrid.innerHTML = html;
 
                 $menuGrid.querySelectorAll('.menu-card').forEach(card => {
-                    card.addEventListener('click', () => addMenuItem(+card.dataset.pid));
+                    card.addEventListener('click', () => openAddProductModal(+card.dataset.pid));
                 });
             }
 
             // ── Add Menu Item ──
-            async function addMenuItem(productId) {
-                if (!selectedTableId) { toast('Selecciona una mesa primero', 'error'); return; }
+            function openAddProductModal(productId) {
+                if (!selectedTableId && !selectedExternalOrderId) { 
+                    toast('Selecciona una mesa o una orden externa primero', 'error'); 
+                    return; 
+                }
+                const p = state.products.find(x => x.id === productId);
+                if (!p) return;
                 
-                // Si la mesa no tiene orden activa, crearla en el instante
-                if (!selectedOrder) {
+                document.getElementById('addProdId').value = p.id;
+                document.getElementById('addProdName').textContent = p.name;
+                document.getElementById('addProdPrice').textContent = `S/ ${Number(p.price).toFixed(2)}`;
+                document.getElementById('addProdQty').value = 1;
+                document.getElementById('addProdNotes').value = '';
+                
+                openModal('modalAddProduct');
+            }
+            
+            window.openExternalOrderModal = function(type) {
+                document.getElementById('extOrderType').value = type;
+                document.getElementById('extOrderModalTitle').textContent = type === 'delivery' ? 'Nuevo Delivery' : 'Nuevo Para Llevar';
+                document.getElementById('extCustomerName').value = '';
+                openModal('modalExternalOrder');
+            }
+            
+            window.submitExternalOrder = async function() {
+                const type = document.getElementById('extOrderType').value;
+                const name = document.getElementById('extCustomerName').value.trim();
+                
+                if (!name) { toast('El nombre del cliente es requerido', 'error'); return; }
+                
+                closeModal('modalExternalOrder');
+                try {
+                    const res = await apiPost('/order/external', { order_type: type, customer_name: name });
+                    if (res.success) {
+                        toast('Orden creada correctamente', 'success');
+                        await fetchStatus();
+                        const eo = state.external_orders.find(x => x.id === res.order.id);
+                        if (eo) selectExternalOrder(eo);
+                    } else { toast(res.error || 'Error al crear orden', 'error'); }
+                } catch(e) {
+                    console.error(e);
+                    toast('Error de red', 'error');
+                }
+            }
+
+            window.confirmAddProduct = async function(sendToKitchen) {
+                const productId = document.getElementById('addProdId').value;
+                const quantity = parseInt(document.getElementById('addProdQty').value) || 1;
+                const notes = document.getElementById('addProdNotes').value.trim();
+                
+                closeModal('modalAddProduct');
+
+                // Si la mesa seleccionada no tiene orden activa, crearla
+                if (selectedTableId && !selectedOrder) {
                     try {
                         const resOrder = await apiPost(`/table/${selectedTableId}/order`);
                         if (!resOrder.success) { toast(resOrder.error, 'error'); return; }
                         selectedOrder = resOrder.order;
                         const t = state.tables.find(x => x.id === selectedTableId);
                         if (t) { t.active_order = selectedOrder; t.status = 'occupied'; }
-                        renderTables(); // Update tile
+                        renderTables(); 
                     } catch (e) {
                         console.error(e);
                         toast('Error al abrir la mesa', 'error');
@@ -625,15 +791,35 @@
                 }
 
                 try {
-                    const res = await apiPost(`/order/${selectedOrder.id}/add_item`, { product_id: productId, quantity: 1 });
+                    const res = await apiPost(`/order/${selectedOrder.id}/add_item`, { product_id: productId, quantity: quantity, notes: notes });
                     if (res.success) {
                         selectedOrder = res.order;
-                        const t = state.tables.find(x => x.id === selectedTableId);
-                        if (t) t.active_order = res.order;
+                        
+                        if (selectedTableId) {
+                            const t = state.tables.find(x => x.id === selectedTableId);
+                            if (t) t.active_order = res.order;
+                            renderTables();
+                        } else if (selectedExternalOrderId) {
+                            const eo = state.external_orders.find(x => x.id === selectedExternalOrderId);
+                            if (eo) {
+                                Object.assign(eo, res.order);
+                            }
+                            renderExternalOrders();
+                        }
+                        
                         renderSidebarItems();
                         renderSidebarTotals();
-                        renderTables();
                         toast('Item agregado', 'success');
+                        
+                        // Si el usuario pidió imprimir en cocina de inmediato
+                        if (sendToKitchen) {
+                            const kotRes = await apiPost(`/order/${selectedOrder.id}/send_kot`);
+                            if (kotRes.success) {
+                                selectedOrder = kotRes.order;
+                                renderSidebarItems();
+                                toast(`Enviado a cocina: ${kotRes.sent_count} item(s)`, 'success');
+                            }
+                        }
                     } else { toast(res.error || 'Error', 'error'); }
                 } catch (e) { console.error(e); toast('Error de conexión', 'error'); }
             }
@@ -645,11 +831,17 @@
                     const res = await apiPost(`/order/${selectedOrder.id}/item/${itemId}/set_qty`, { quantity: newQty });
                     if (res.success) {
                         selectedOrder = res.order;
-                        const t = state.tables.find(x => x.id === selectedTableId);
-                        if (t) t.active_order = res.order;
+                        if (selectedTableId) {
+                            const t = state.tables.find(x => x.id === selectedTableId);
+                            if (t) t.active_order = res.order;
+                            renderTables();
+                        } else if (selectedExternalOrderId) {
+                            const eo = state.external_orders.find(x => x.id === selectedExternalOrderId);
+                            if (eo) Object.assign(eo, res.order);
+                            renderExternalOrders();
+                        }
                         renderSidebarItems();
                         renderSidebarTotals();
-                        renderTables();
                     } else {
                         toast(res.error || 'Error', 'error');
                     }
@@ -659,11 +851,17 @@
                     const res = await apiPost(`/order/${selectedOrder.id}/remove_item/${itemId}`);
                     if (res.success) {
                         selectedOrder = res.order;
-                        const t = state.tables.find(x => x.id === selectedTableId);
-                        if (t) t.active_order = res.order;
+                        if (selectedTableId) {
+                            const t = state.tables.find(x => x.id === selectedTableId);
+                            if (t) t.active_order = res.order;
+                            renderTables();
+                        } else if (selectedExternalOrderId) {
+                            const eo = state.external_orders.find(x => x.id === selectedExternalOrderId);
+                            if (eo) Object.assign(eo, res.order);
+                            renderExternalOrders();
+                        }
                         renderSidebarItems();
                         renderSidebarTotals();
-                        renderTables();
                         toast('Item eliminado', 'success');
                     } else { toast(res.error || 'Error', 'error'); }
                 }
@@ -680,10 +878,16 @@
                         const res = await apiPost(`/order/${selectedOrder.id}/update`, { discount_percent: +input.value });
                         if (res.success) {
                             selectedOrder = res.order;
-                            const t = state.tables.find(x => x.id === selectedTableId);
-                            if (t) t.active_order = res.order;
+                            if (selectedTableId) {
+                                const t = state.tables.find(x => x.id === selectedTableId);
+                                if (t) t.active_order = res.order;
+                                renderTables();
+                            } else if (selectedExternalOrderId) {
+                                const eo = state.external_orders.find(x => x.id === selectedExternalOrderId);
+                                if (eo) Object.assign(eo, res.order);
+                                renderExternalOrders();
+                            }
                             renderSidebarTotals();
-                            renderTables();
                         }
                     } catch (err) {
                         console.error(err);
@@ -704,10 +908,16 @@
                         const res = await apiPost(`/order/${selectedOrder.id}/update`, { tip: +input.value });
                         if (res.success) {
                             selectedOrder = res.order;
-                            const t = state.tables.find(x => x.id === selectedTableId);
-                            if (t) t.active_order = res.order;
+                            if (selectedTableId) {
+                                const t = state.tables.find(x => x.id === selectedTableId);
+                                if (t) t.active_order = res.order;
+                                renderTables();
+                            } else if (selectedExternalOrderId) {
+                                const eo = state.external_orders.find(x => x.id === selectedExternalOrderId);
+                                if (eo) Object.assign(eo, res.order);
+                                renderExternalOrders();
+                            }
                             renderSidebarTotals();
-                            renderTables();
                         }
                     } catch (err) {
                         console.error(err);
@@ -761,10 +971,16 @@
             });
 
             document.getElementById('btnAddTaper').addEventListener('click', async () => {
-                if (!selectedTableId) return;
+                if (!selectedOrder && !selectedTableId && !selectedExternalOrderId) return;
                 const taperProduct = state.products.find(p => p.name.toLowerCase().includes('taper'));
                 if (taperProduct) {
-                    await addMenuItem(taperProduct.id);
+                    // Abrir el modal pero prellenarlo para el taper
+                    document.getElementById('addProdId').value = taperProduct.id;
+                    document.getElementById('addProdName').textContent = taperProduct.name;
+                    document.getElementById('addProdPrice').textContent = `S/ ${Number(taperProduct.price).toFixed(2)}`;
+                    document.getElementById('addProdQty').value = 1;
+                    document.getElementById('addProdNotes').value = '';
+                    confirmAddProduct(false); // Agregar rápido sin preguntar notas de nuevo (o abrir modal si queremos ser consistentes, mejor lo agregamos rápido)
                 } else {
                     toast('El producto Taper no existe. Créelo en el menú.', 'error');
                 }

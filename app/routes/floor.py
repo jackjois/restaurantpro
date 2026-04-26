@@ -68,11 +68,11 @@ def api_status():
     """Devuelve JSON con todo el estado actual del restaurante."""
     # --- Mesas con órdenes activas ---
     tables = Table.query.order_by(Table.number).all()
-    active_orders = Order.query.filter(
-        Order.table_id.isnot(None),
+    all_active_orders = Order.query.filter(
         Order.status.notin_(['paid', 'cancelled'])
     ).all()
-    orders_map = {o.table_id: o for o in active_orders}
+    orders_map = {o.table_id: o for o in all_active_orders if o.table_id is not None}
+    external_orders = [o for o in all_active_orders if o.table_id is None]
 
     tables_data = []
     occupied_count = 0
@@ -179,8 +179,11 @@ def api_status():
             'stock': p.stock if p.track_stock else None
         })
 
+    external_orders_data = [_serialize_order(eo) for eo in external_orders]
+
     return jsonify({
         'tables': tables_data,
+        'external_orders': external_orders_data,
         'categories': categories_data,
         'products': products_data,
         'reservations': reservations_data,
@@ -231,6 +234,8 @@ def _serialize_order(order):
     return {
         'id': order.id,
         'order_number': order.order_number,
+        'order_type': order.order_type,
+        'customer_name': order.customer_name or '',
         'status': order.status,
         'waiter': waiter_name,
         'items': items,
@@ -276,6 +281,46 @@ def api_create_order(table_id):
     except Exception as e:
         db.session.rollback()
         logger.exception('Error creando orden floor para mesa %s', table_id)
+        return jsonify({'success': False, 'error': 'Error interno.'}), 500
+
+
+# ───────────────────────────────────────────────
+# API: Crear orden Externa (Delivery / Takeaway)
+# ───────────────────────────────────────────────
+
+@floor_bp.route('/api/order/external', methods=['POST'])
+@login_required
+@role_required('admin', 'cashier', 'waiter')
+def api_create_external_order():
+    """Crea una orden nueva de tipo Delivery o Takeaway."""
+    data = request.get_json() or {}
+    order_type = data.get('order_type')
+    customer_name = data.get('customer_name', '').strip()
+    
+    if order_type not in ['delivery', 'takeaway']:
+        return jsonify({'success': False, 'error': 'Tipo de orden no válido.'}), 400
+        
+    if not customer_name:
+        return jsonify({'success': False, 'error': 'El nombre del cliente es obligatorio.'}), 400
+
+    try:
+        new_order = Order(
+            table_id=None,
+            user_id=current_user.id,
+            order_number=generate_order_number(),
+            order_type=order_type,
+            customer_name=customer_name,
+            status='pending',
+            total_amount=0
+        )
+        db.session.add(new_order)
+        db.session.commit()
+        AppSignal.emit('floor_external_order_created', 'orders')
+
+        return jsonify({'success': True, 'order': _serialize_order(new_order)})
+    except Exception as e:
+        db.session.rollback()
+        logger.exception('Error creando orden externa')
         return jsonify({'success': False, 'error': 'Error interno.'}), 500
 
 
