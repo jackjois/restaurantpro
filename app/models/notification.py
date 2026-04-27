@@ -15,7 +15,13 @@ class Notification(db.Model):
     
     @property
     def time(self):
-        return self.created_at.strftime('%H:%M') if self.created_at else ''
+        if not self.created_at:
+            return ''
+        from app.constants import PERU_TZ
+        dt = self.created_at
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(PERU_TZ).strftime('%H:%M')
         
     @classmethod
     def get_unread_count(cls, user_id):

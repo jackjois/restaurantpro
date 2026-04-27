@@ -10,3 +10,4 @@ from .setting import Setting
 from .audit_log import AuditLog
 from .notification import Notification
 from .app_signal import AppSignal
+from .reservation import Reservation

@@ -369,6 +369,17 @@ def process_split_pay(order_id):
     customer_name = request.form.get('customer_name', 'Cliente Varios')
     customer_document = request.form.get('customer_document', '00000000')
 
+    # === VALIDACIONES DE SEGURIDAD ===
+    allowed_methods = ('cash', 'card', 'yape', 'plin', 'transfer')
+    if payment_method not in allowed_methods:
+        flash('Método de pago no válido.', 'danger')
+        return redirect(url_for('cashier.split_pay', order_id=order_id))
+
+    allowed_invoice_types = ('boleta', 'factura')
+    if invoice_type not in allowed_invoice_types:
+        flash('Tipo de comprobante no válido.', 'danger')
+        return redirect(url_for('cashier.split_pay', order_id=order_id))
+
     # Obtener los items reales desde la BD
     from app.models.order import OrderItem
     selected_items = OrderItem.query.filter(
@@ -404,7 +415,7 @@ def process_split_pay(order_id):
             if last_invoice:
                 try:
                     next_num = int(last_invoice.document_number.split('-')[1]) + 1
-                except:
+                except (ValueError, IndexError):
                     pass
         doc_number = f"{prefix}-{next_num:06d}"
         

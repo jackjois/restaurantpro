@@ -27,17 +27,7 @@ logger = logging.getLogger(__name__)
 floor_bp = Blueprint('floor', __name__, url_prefix='/floor')
 
 
-def generate_order_number():
-    """Genera un número de pedido único basado en secuencia de BD."""
-    try:
-        with db.session.begin_nested():
-            seq = db.session.execute(db.text("SELECT nextval('order_number_seq')")).scalar()
-            date_part = datetime.now(timezone.utc).strftime('%Y%m%d')
-            return f'ORD-{date_part}-{seq:04d}'
-    except Exception:
-        import random, string
-        chars = string.ascii_uppercase + string.digits
-        return 'ORD-' + ''.join(random.choices(chars, k=6))
+
 
 
 # ───────────────────────────────────────────────
@@ -276,7 +266,7 @@ def api_create_order(table_id):
         new_order = Order(
             table_id=table.id,
             user_id=current_user.id,
-            order_number=generate_order_number(),
+            order_number=Order.generate_order_number(),
             order_type='dine_in',
             status='pending',
             total_amount=0
@@ -319,7 +309,7 @@ def api_create_external_order():
         new_order = Order(
             table_id=None,
             user_id=current_user.id,
-            order_number=generate_order_number(),
+            order_number=Order.generate_order_number(),
             order_type=order_type,
             customer_name=customer_name,
             customer_phone=customer_phone,
@@ -747,7 +737,7 @@ def api_split_order(order_id):
         new_order = Order(
             table_id=None,
             user_id=current_user.id,
-            order_number=generate_order_number(),
+            order_number=Order.generate_order_number(),
             order_type='takeaway', # Se marca como takeaway o para llevar
             status='pending',
             total_amount=0,

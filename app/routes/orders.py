@@ -17,19 +17,7 @@ logger = logging.getLogger(__name__)
 
 orders_bp = Blueprint('orders', __name__, url_prefix='/orders')
 
-def generate_order_number():
-    """Genera un número de pedido único basado en secuencia de BD."""
-    try:
-        # Savepoint explícito para no corromper la transacción externa si la secuencia no existe
-        with db.session.begin_nested():
-            seq = db.session.execute(db.text("SELECT nextval('order_number_seq')")).scalar()
-            date_part = datetime.now(timezone.utc).strftime('%Y%m%d')
-            return f'ORD-{date_part}-{seq:04d}'
-    except Exception:
-        # Fallback si la secuencia no existe aún
-        import random, string
-        chars = string.ascii_uppercase + string.digits
-        return 'ORD-' + ''.join(random.choices(chars, k=6))
+
 
 @orders_bp.route('/')
 @login_required
@@ -80,7 +68,7 @@ def submit_pos(table_id):
         new_order = Order(
             table_id=table.id,
             user_id=current_user.id,
-            order_number=generate_order_number(),
+            order_number=Order.generate_order_number(),
             status='pending',
             total_amount=0
         )
@@ -140,7 +128,7 @@ def create(table_id):
         new_order = Order(
             table_id=table.id,
             user_id=current_user.id,
-            order_number=generate_order_number(),
+            order_number=Order.generate_order_number(),
             status='pending',
             total_amount=0
         )
@@ -178,7 +166,7 @@ def create_external():
         new_order = Order(
             table_id=None,
             user_id=current_user.id,
-            order_number=generate_order_number(),
+            order_number=Order.generate_order_number(),
             order_type=order_type,
             customer_name=customer_name,
             customer_phone=customer_phone,
@@ -278,22 +266,23 @@ def remove_item(item_id):
         return redirect(url_for('orders.details', id=order.id))
         
     # Reintegro de inventario
-    if item.product.track_stock:
+    if item.product and item.product.track_stock:
         item.product.stock += item.quantity
         
     # Restar del total de la orden
     order.total_amount = float(order.total_amount) - float(item.subtotal)
     if order.total_amount < 0:
         order.total_amount = 0
-        
+    
+    product_name = item.product.name if item.product else '[Producto eliminado]'
     db.session.delete(item)
     
-    AuditLog.log('REMOVE_ITEM', 'order_items', order.id, f"Se eliminó {item.quantity}x {item.product.name} de la orden {order.order_number}", current_user.id)
+    AuditLog.log('REMOVE_ITEM', 'order_items', order.id, f"Se eliminó {item.quantity}x {product_name} de la orden {order.order_number}", current_user.id)
     
     db.session.commit()
     AppSignal.emit('item_removed', 'order_items')
 
-    flash(f'{item.product.name} eliminado de la orden correctamente.', 'success')
+    flash(f'{product_name} eliminado de la orden correctamente.', 'success')
     return redirect(url_for('orders.details', id=order.id))
 
 @orders_bp.route('/kitchen')
@@ -358,7 +347,7 @@ def cancel(id):
         order.status = 'cancelled'
         for item in order.items: 
             item.status = 'cancelled'
-            if item.product.track_stock:
+            if item.product and item.product.track_stock:
                 item.product.stock += item.quantity
         if table: table.status = 'free'
         

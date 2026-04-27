@@ -36,10 +36,14 @@ def create():
         color=color,
         is_active=True
     )
-    db.session.add(new_cat)
-    db.session.commit()
+    try:
+        db.session.add(new_cat)
+        db.session.commit()
+        flash('Categoría creada exitosamente.', 'success')
+    except Exception:
+        db.session.rollback()
+        flash('Error al crear la categoría. Intenta nuevamente.', 'danger')
     
-    flash('Categoría creada exitosamente.', 'success')
     return redirect(url_for('categories.index'))
 
 @categories_bp.route('/edit/<int:id>', methods=['POST'])
