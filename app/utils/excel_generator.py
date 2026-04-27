@@ -33,8 +33,11 @@ def generate_sales_excel(payments):
         costo_total_orden = 0
         for item in p.order.items:
             if item.status != 'cancelled':
-                platos.append(f"{item.quantity}x {item.product.name}")
-                costo_total_orden += float(item.product.cost or 0) * item.quantity
+                if item.product:
+                    platos.append(f"{item.quantity}x {item.product.name}")
+                    costo_total_orden += float(item.product.cost or 0) * item.quantity
+                else:
+                    platos.append(f"{item.quantity}x [Producto eliminado]")
         detalle_platos = ", ".join(platos) if platos else "Sin detalles"
 
         # Lógica de Modalidad

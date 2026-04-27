@@ -77,7 +77,8 @@ def generate_sales_pdf(payments):
                         y = 750
                         c.setFont("Helvetica", 9)
                     
-                    c.drawString(70, y, f"• {item.quantity}x {item.product.name} (S/ {item.subtotal})")
+                    nombre_plato = item.product.name if item.product else '[Producto eliminado]'
+                    c.drawString(70, y, f"• {item.quantity}x {nombre_plato} (S/ {item.subtotal})")
                     y -= 12
             else:
                 c.drawString(70, y, "- Sin platos registrados.")
@@ -92,7 +93,7 @@ def generate_sales_pdf(payments):
             
             total += monto_total
             
-    if y < 50:
+    if y < 80:
         c.showPage()
         y = 750
         

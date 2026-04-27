@@ -91,7 +91,7 @@ def sales():
         if p.order and p.order.items:
             for item in p.order.items:
                 if item.status != 'cancelled' and item.product:
-                    total_costs += float(item.product.cost or 0) * int(item.quantity)
+                    total_costs += float(item.product.cost or 0) * int(item.quantity or 1)
 
     avg_ticket = total_sales / total_orders if total_orders > 0 else 0
     gross_profit = total_sales - total_costs

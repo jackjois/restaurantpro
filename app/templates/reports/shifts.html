@@ -113,14 +113,14 @@
                 <td class="fw-extrabold text-dark">{{ s.user.username }}</td>
                 <td>
                     <div class="small fw-bold text-muted"><i class="bi bi-play-circle me-1 text-success"></i>{{
-                        s.opening_time.strftime('%d/%m/%Y') }}</div>
-                    <div class="fw-bold">{{ s.opening_time.strftime('%H:%M %p') }}</div>
+                        s.opening_time|peru_time|attr('strftime')('%d/%m/%Y') }}</div>
+                    <div class="fw-bold">{{ s.opening_time|peru_time|attr('strftime')('%H:%M %p') }}</div>
                 </td>
                 <td>
                     {% if s.closing_time %}
                     <div class="small fw-bold text-muted"><i class="bi bi-stop-circle me-1 text-danger"></i>{{
-                        s.closing_time.strftime('%d/%m/%Y') }}</div>
-                    <div class="fw-bold">{{ s.closing_time.strftime('%H:%M %p') }}</div>
+                        s.closing_time|peru_time|attr('strftime')('%d/%m/%Y') }}</div>
+                    <div class="fw-bold">{{ s.closing_time|peru_time|attr('strftime')('%H:%M %p') }}</div>
                     {% else %}
                     <span class="text-muted fst-italic">Aún operando...</span>
                     {% endif %}
