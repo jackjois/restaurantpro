@@ -86,6 +86,20 @@
                         </div>
                     </div>
 
+                    <!-- Calculadora de Vuelto (solo Efectivo) -->
+                    <div class="row g-3 mb-4" id="cash_calculator_section">
+                        <div class="col-md-6">
+                            <label class="form-label text-primary fw-bold"><i class="bi bi-cash me-1"></i> Monto Recibido (S/)</label>
+                            <input type="number" step="0.01" min="{{ remaining_amount }}" class="form-control form-control-lg border-primary shadow-sm" id="amount_received" placeholder="Ej: 100.00">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-success fw-bold"><i class="bi bi-arrow-return-left me-1"></i> Vuelto a Entregar</label>
+                            <div class="form-control form-control-lg bg-success bg-opacity-10 text-success fw-bold shadow-sm d-flex align-items-center" id="change_due">
+                                S/ 0.00
+                            </div>
+                        </div>
+                    </div>
+
                     <h5 class="fw-bold mb-3 border-bottom pb-2">Datos del Comprobante</h5>
                     <div class="row g-3 mb-4">
                         <div class="col-12">
@@ -135,5 +149,38 @@
             }
         });
     });
+
+    // Lógica para la calculadora de vuelto
+    const paymentMethodSelect = document.getElementById('payment_method');
+    const cashCalcSection = document.getElementById('cash_calculator_section');
+    const amountReceivedInput = document.getElementById('amount_received');
+    const changeDueDisplay = document.getElementById('change_due');
+    const totalAmount = {{ remaining_amount }};
+
+    function toggleCashCalculator() {
+        if (paymentMethodSelect.value === 'cash') {
+            cashCalcSection.style.display = 'flex';
+        } else {
+            cashCalcSection.style.display = 'none';
+            amountReceivedInput.value = '';
+            changeDueDisplay.innerText = 'S/ 0.00';
+        }
+    }
+
+    function calculateChange() {
+        const received = parseFloat(amountReceivedInput.value);
+        if (!isNaN(received) && received >= totalAmount) {
+            const change = received - totalAmount;
+            changeDueDisplay.innerText = 'S/ ' + change.toFixed(2);
+        } else {
+            changeDueDisplay.innerText = 'S/ 0.00';
+        }
+    }
+
+    paymentMethodSelect.addEventListener('change', toggleCashCalculator);
+    amountReceivedInput.addEventListener('input', calculateChange);
+
+    // Inicializar estado
+    toggleCashCalculator();
 </script>
 {% endblock %}
