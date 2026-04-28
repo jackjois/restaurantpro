@@ -123,7 +123,7 @@
                     </div>
 
                     <hr class="my-4">
-                    <button class="btn btn-success btn-lg w-100 fw-bold" type="submit">
+                    <button class="btn btn-success btn-lg w-100 fw-bold" type="submit" id="btnSubmitPayment">
                         <i class="bi bi-check-circle me-2"></i> Procesar Pago y Liberar Mesa
                     </button>
                     <a href="{{ url_for('cashier.pos') }}" class="btn btn-light w-100 mt-2">Cancelar</a>
@@ -158,22 +158,42 @@
     const totalAmount = {{ remaining_amount }};
 
     function toggleCashCalculator() {
+        const submitBtn = document.getElementById('btnSubmitPayment');
         if (paymentMethodSelect.value === 'cash') {
             cashCalcSection.style.display = 'flex';
+            calculateChange(); // Validar inmediatamente
         } else {
             cashCalcSection.style.display = 'none';
             amountReceivedInput.value = '';
             changeDueDisplay.innerText = 'S/ 0.00';
+            changeDueDisplay.className = 'form-control form-control-lg bg-success bg-opacity-10 text-success fw-bold shadow-sm d-flex align-items-center';
+            if (submitBtn) submitBtn.disabled = false; // Habilitar pago si no es efectivo
         }
     }
 
     function calculateChange() {
         const received = parseFloat(amountReceivedInput.value);
-        if (!isNaN(received) && received >= totalAmount) {
+        const submitBtn = document.getElementById('btnSubmitPayment');
+        
+        if (paymentMethodSelect.value !== 'cash') return;
+
+        if (isNaN(received) || amountReceivedInput.value === '') {
+            changeDueDisplay.innerText = 'S/ 0.00';
+            changeDueDisplay.className = 'form-control form-control-lg bg-light text-muted fw-bold shadow-sm d-flex align-items-center';
+            if (submitBtn) submitBtn.disabled = true; // Bloquear si está vacío
+            return;
+        }
+
+        if (received >= totalAmount) {
             const change = received - totalAmount;
             changeDueDisplay.innerText = 'S/ ' + change.toFixed(2);
+            changeDueDisplay.className = 'form-control form-control-lg bg-success bg-opacity-10 text-success fw-bold shadow-sm d-flex align-items-center';
+            if (submitBtn) submitBtn.disabled = false;
         } else {
-            changeDueDisplay.innerText = 'S/ 0.00';
+            const missing = totalAmount - received;
+            changeDueDisplay.innerText = 'Faltan S/ ' + missing.toFixed(2);
+            changeDueDisplay.className = 'form-control form-control-lg bg-danger bg-opacity-10 text-danger fw-bold shadow-sm d-flex align-items-center';
+            if (submitBtn) submitBtn.disabled = true;
         }
     }
 

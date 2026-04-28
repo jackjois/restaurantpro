@@ -134,9 +134,21 @@
                 }
             });
             totalEl.innerText = `S/ ${currentTotal.toFixed(2)}`;
-            btnSubmit.disabled = (count === 0);
             document.getElementById('amount_received').min = currentTotal;
-            calculateChange(); // Recalcular vuelto si cambia el total
+            
+            if (count === 0) {
+                btnSubmit.disabled = true;
+                if (paymentMethodSelect.value === 'cash') {
+                    changeDueDisplay.innerText = 'S/ 0.00';
+                    changeDueDisplay.className = 'form-control form-control-lg bg-light text-muted fw-bold shadow-sm d-flex align-items-center';
+                }
+            } else {
+                if (paymentMethodSelect.value !== 'cash') {
+                    btnSubmit.disabled = false;
+                } else {
+                    calculateChange();
+                }
+            }
         }
 
         checkboxes.forEach(cb => {
@@ -166,20 +178,39 @@
         function toggleCashCalculator() {
             if (paymentMethodSelect.value === 'cash') {
                 cashCalcSection.style.display = 'flex';
+                calcularTotal(); // Valida el estado del botón y calcula el vuelto
             } else {
                 cashCalcSection.style.display = 'none';
                 amountReceivedInput.value = '';
                 changeDueDisplay.innerText = 'S/ 0.00';
+                changeDueDisplay.className = 'form-control form-control-lg bg-success bg-opacity-10 text-success fw-bold shadow-sm d-flex align-items-center';
+                calcularTotal(); // Reactiva el botón si hay items seleccionados
             }
         }
 
         function calculateChange() {
+            if (paymentMethodSelect.value !== 'cash') return;
+            if (currentTotal === 0) return;
+
             const received = parseFloat(amountReceivedInput.value);
-            if (!isNaN(received) && received >= currentTotal && currentTotal > 0) {
+
+            if (isNaN(received) || amountReceivedInput.value === '') {
+                changeDueDisplay.innerText = 'S/ 0.00';
+                changeDueDisplay.className = 'form-control form-control-lg bg-light text-muted fw-bold shadow-sm d-flex align-items-center';
+                btnSubmit.disabled = true;
+                return;
+            }
+
+            if (received >= currentTotal) {
                 const change = received - currentTotal;
                 changeDueDisplay.innerText = 'S/ ' + change.toFixed(2);
+                changeDueDisplay.className = 'form-control form-control-lg bg-success bg-opacity-10 text-success fw-bold shadow-sm d-flex align-items-center';
+                btnSubmit.disabled = false;
             } else {
-                changeDueDisplay.innerText = 'S/ 0.00';
+                const missing = currentTotal - received;
+                changeDueDisplay.innerText = 'Faltan S/ ' + missing.toFixed(2);
+                changeDueDisplay.className = 'form-control form-control-lg bg-danger bg-opacity-10 text-danger fw-bold shadow-sm d-flex align-items-center';
+                btnSubmit.disabled = true;
             }
         }
 
