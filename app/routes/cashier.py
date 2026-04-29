@@ -261,8 +261,9 @@ def pay(order_id):
         # Secuencia atómica de facturación (evita duplicados por concurrencia)
         prefix = 'B001' if invoice_type == 'boleta' else 'F001'
         try:
-            seq_name = 'boleta_seq' if invoice_type == 'boleta' else 'factura_seq'
-            next_num = db.session.execute(db.text(f"SELECT nextval('{seq_name}')")).scalar()
+            with db.session.begin_nested():
+                seq_name = 'boleta_seq' if invoice_type == 'boleta' else 'factura_seq'
+                next_num = db.session.execute(db.text(f"SELECT nextval('{seq_name}')")).scalar()
         except Exception:
             # Fallback si las secuencias no existen aún
             last_invoice = Invoice.query.filter(Invoice.document_number.like(f"{prefix}-%")).order_by(Invoice.id.desc()).first()
@@ -407,8 +408,9 @@ def process_split_pay(order_id):
         # Lógica de Facturación (simplificada, igual que pay)
         prefix = 'B001' if invoice_type == 'boleta' else 'F001'
         try:
-            seq_name = 'boleta_seq' if invoice_type == 'boleta' else 'factura_seq'
-            next_num = db.session.execute(db.text(f"SELECT nextval('{seq_name}')")).scalar()
+            with db.session.begin_nested():
+                seq_name = 'boleta_seq' if invoice_type == 'boleta' else 'factura_seq'
+                next_num = db.session.execute(db.text(f"SELECT nextval('{seq_name}')")).scalar()
         except Exception:
             last_invoice = Invoice.query.filter(Invoice.document_number.like(f"{prefix}-%")).order_by(Invoice.id.desc()).first()
             next_num = 1
