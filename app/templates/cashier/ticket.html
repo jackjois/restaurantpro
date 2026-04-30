@@ -42,8 +42,7 @@
         
         <div class="border-top border-bottom mt-1 mb-1 py-1 text-center">
             {% if invoice %}
-                <div class="fw-bold">{{ invoice.invoice_type | upper }} ELECTRÓNICA{% if is_partial %} (PARCIAL){% endif %}</div>
-                <div>{{ invoice.document_number }}</div>
+                <div class="fw-bold">{{ invoice.invoice_type | upper }} SIMPLE - DETALLADO</div>
             {% else %}
                 <div class="fw-bold">TICKET DE VENTA{% if is_partial %} (PARCIAL){% endif %}</div>
                 <div>{{ order.order_number }}</div>
