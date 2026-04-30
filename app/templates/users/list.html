@@ -80,7 +80,7 @@
                     {% endif %}
                 </td>
                 <td class="text-muted small fw-bold">
-                    {% if u.last_login %}<i class="bi bi-clock-history me-1"></i> {{ u.last_login|peru_time|attr('strftime')('%Y-%m-%d %H:%M') }}{% else %}Nunca{% endif %}
+                    {% if u.last_login %}<i class="bi bi-clock-history me-1"></i> {{ u.last_login|peru_time('%Y-%m-%d %H:%M') }}{% else %}Nunca{% endif %}
                 </td>
                 <td>
                     <div class="dropdown text-end">

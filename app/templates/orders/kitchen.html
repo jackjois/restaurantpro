@@ -170,7 +170,7 @@
                         {% endif %}
                     </span>
                     <div class="d-flex align-items-center">
-                        <span class="text-muted fw-bold me-2">{{ item.created_at|peru_time|attr('strftime')('%H:%M') }}</span>
+                        <span class="text-muted fw-bold me-2">{{ item.created_at|peru_time('%H:%M') }}</span>
                         <!-- Timer Reactivo -->
                         <div class="timer-badge border px-3 py-1 rounded-pill"
                             data-timestamp="{{ item.created_at.timestamp() }}">

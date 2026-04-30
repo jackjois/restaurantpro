@@ -132,13 +132,17 @@ def create_app(config_class=Config):
         return url_for('static', filename=folder + path)
         
     @app.template_filter('peru_time')
-    def peru_time(dt):
-        """Convierte un datetime UTC a la zona horaria de Perú (UTC-5)"""
+    def peru_time(dt, fmt=None):
+        """Convierte un datetime UTC a la zona horaria de Perú (UTC-5).
+        Si se pasa un formato, devuelve el string formateado directamente."""
         if not dt:
             return dt
         if dt.tzinfo is None:
             dt = dt.replace(tzinfo=timezone.utc)
-        return dt.astimezone(PERU_TZ)
+        result = dt.astimezone(PERU_TZ)
+        if fmt:
+            return result.strftime(fmt)
+        return result
         
     @app.after_request
     def add_security_headers(response):

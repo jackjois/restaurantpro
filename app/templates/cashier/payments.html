@@ -41,7 +41,7 @@
                         {% if item.status != 'cancelled' and not item.is_paid %}
                         <li class="list-group-item d-flex justify-content-between lh-sm py-3">
                             <div>
-                                <h6 class="my-0">{{ item.quantity }}x {{ item.product.name }}</h6>
+                                <h6 class="my-0">{{ item.quantity }}x {{ item.product.name if item.product else 'Producto eliminado' }}</h6>
                             </div>
                             <span class="text-muted">S/ {{ item.subtotal }}</span>
                         </li>

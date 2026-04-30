@@ -6,9 +6,6 @@ from app.models.order import Order, OrderItem
 from app.models.notification import Notification
 from app.models.app_signal import AppSignal
 from app import db, csrf
-import random
-import string
-import time
 from datetime import datetime, timezone, timedelta
 
 menu_bp = Blueprint('menu', __name__, url_prefix='/menu')
@@ -91,8 +88,10 @@ def place_order(qr_code):
     active_order = Order.query.filter_by(table_id=table.id).filter(Order.status.in_(['pending', 'preparing', 'ready', 'served'])).first()
 
     if not active_order:
-        chars = string.ascii_uppercase + string.digits
-        order_num = 'WEB-' + ''.join(random.choices(chars, k=5))
+        # Usar secuencia de BD para evitar colisiones de order_number
+        seq = db.session.execute(db.text("SELECT nextval('order_number_seq')")).scalar()
+        date_part = datetime.now(timezone.utc).strftime('%Y%m%d')
+        order_num = f'WEB-{date_part}-{seq:04d}'
         active_order = Order(
             table_id=table.id,
             user_id=None, # Pedido Web (Sin mozo)
@@ -119,11 +118,14 @@ def place_order(qr_code):
             
         qty = item['cantidad']
         
-        # Validar stock si se trackea
-        if product.track_stock and product.stock < qty:
-            continue
+        # Validar y descontar stock atómicamente para evitar race conditions
         if product.track_stock:
-            product.stock -= qty
+            rows_updated = Product.query.filter(
+                Product.id == product.id,
+                Product.stock >= qty
+            ).update({'stock': Product.stock - qty}, synchronize_session=False)
+            if rows_updated == 0:
+                continue  # Stock insuficiente, otro request lo consumió primero
             
         subtotal = float(product.price) * qty
         total_added += subtotal

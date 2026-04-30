@@ -73,7 +73,7 @@
                     {% for item in items_to_print %}
                     <tr>
                         <td>{{ item.quantity }}</td>
-                        <td>{{ item.product.name }}</td>
+                        <td>{{ item.product.name if item.product else 'Producto eliminado' }}</td>
                         <td class="text-right">S/ {{ "%.2f"|format(item.subtotal) }}</td>
                     </tr>
                     {% endfor %}

@@ -1,6 +1,5 @@
-import os
 import time
-from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
+from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required
 from app.utils.decorators import role_required
 from werkzeug.utils import secure_filename

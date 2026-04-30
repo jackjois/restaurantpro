@@ -230,6 +230,25 @@ CREATE TABLE IF NOT EXISTS app_signals (
 );
 
 -- --------------------------------------------------------
+-- 15. Tabla `reservations`
+-- --------------------------------------------------------
+CREATE TABLE IF NOT EXISTS reservations (
+    id SERIAL PRIMARY KEY,
+    table_id INTEGER REFERENCES tables(id) ON DELETE CASCADE NOT NULL,
+    customer_name VARCHAR(150) NOT NULL,
+    customer_phone VARCHAR(50),
+    reservation_time TIMESTAMPTZ NOT NULL,
+    guest_count INTEGER DEFAULT 1,
+    status VARCHAR(50) DEFAULT 'pending',
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT chk_reservation_status CHECK (status IN ('pending', 'confirmed', 'cancelled', 'completed'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_reservations_table_id ON reservations(table_id);
+CREATE INDEX IF NOT EXISTS idx_reservations_status ON reservations(status);
+
+-- --------------------------------------------------------
 -- SECUENCIAS DE NEGOCIO
 -- --------------------------------------------------------
 CREATE SEQUENCE IF NOT EXISTS order_number_seq START 1;
@@ -254,12 +273,13 @@ ALTER TABLE invoices ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE app_signals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE reservations ENABLE ROW LEVEL SECURITY;
 
 -- Políticas: acceso completo para postgres (backend Flask)
 DO $$ 
 DECLARE t TEXT;
 BEGIN
-  FOR t IN SELECT unnest(ARRAY['categories','users','settings','tables','products','orders','order_items','cash_sessions','cash_expenses','payments','invoices','notifications','audit_logs','app_signals'])
+  FOR t IN SELECT unnest(ARRAY['categories','users','settings','tables','products','orders','order_items','cash_sessions','cash_expenses','payments','invoices','notifications','audit_logs','app_signals','reservations'])
   LOOP
     -- Postgres no soporta "CREATE POLICY IF NOT EXISTS", así que lo hacemos idempotente vía pg_policies.
     IF NOT EXISTS (

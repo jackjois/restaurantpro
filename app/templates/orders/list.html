@@ -86,7 +86,7 @@
                     {% else %}<span class="badge-soft-served">{{ o.status|upper }}</span>{% endif %}
                 </td>
                 <td class="text-muted small fw-bold">
-                    <i class="bi bi-calendar-event me-1"></i> {{ o.created_at|peru_time|attr('strftime')('%Y-%m-%d %H:%M') }}
+                    <i class="bi bi-calendar-event me-1"></i> {{ o.created_at|peru_time('%Y-%m-%d %H:%M') }}
                 </td>
                 <td>
                     <div class="d-flex justify-content-end gap-2">

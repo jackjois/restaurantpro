@@ -154,7 +154,7 @@
                 <tbody>
                     {% for e in expenses %}
                     <tr>
-                        <td class="ps-4 text-muted small fw-bold">{{ e.created_at|peru_time|attr('strftime')('%Y-%m-%d %H:%M') }}</td>
+                        <td class="ps-4 text-muted small fw-bold">{{ e.created_at|peru_time('%Y-%m-%d %H:%M') }}</td>
                         <td class="fw-bold">{{ e.user.username if e.user else 'Admin' }}</td>
                         <td class="text-secondary fw-medium"><i class="bi bi-chat-quote-fill me-1 opacity-50"></i>{{ e.reason }}</td>
                         <td class="text-end pe-4 text-danger fw-bold">S/ {{ "%.2f"|format(e.amount) }}</td>
@@ -198,7 +198,7 @@
                     </div>
                 </td>
                 <td class="text-muted small fw-bold">
-                    <i class="bi bi-calendar2-check-fill me-1"></i> {{ p.created_at|peru_time|attr('strftime')('%Y-%m-%d %H:%M') }}
+                    <i class="bi bi-calendar2-check-fill me-1"></i> {{ p.created_at|peru_time('%Y-%m-%d %H:%M') }}
                 </td>
                 <td class="fw-bold text-dark">
                     {% if p.order.order_type == 'delivery' %}

@@ -126,10 +126,15 @@ def delete(id):
         flash(f'El usuario "{user.username}" ha sido eliminado permanentemente del sistema.', 'success')
     except Exception as e:
         db.session.rollback()
-        logger.exception("Error al eliminar el usuario, aplicando soft delete")
-        # Fallback a soft delete si hay restricciones de FK (pedidos, pagos, etc.)
-        user.is_active = False
-        db.session.commit()
-        flash(f'El usuario "{user.username}" tiene transacciones o registros históricos (pedidos, caja). Por seguridad, ha sido DESACTIVADO permanentemente y ya no podrá iniciar sesión.', 'warning')
+        # Solo aplicar soft-delete si es un error de integridad referencial (FK)
+        from sqlalchemy.exc import IntegrityError
+        if isinstance(e, IntegrityError):
+            logger.warning("FK impide borrar usuario %s, aplicando soft delete", id)
+            user.is_active = False
+            db.session.commit()
+            flash(f'El usuario "{user.username}" tiene transacciones o registros históricos (pedidos, caja). Por seguridad, ha sido DESACTIVADO permanentemente y ya no podrá iniciar sesión.', 'warning')
+        else:
+            logger.exception("Error inesperado al eliminar el usuario %s", id)
+            flash('Error al eliminar el usuario. Intenta nuevamente.', 'danger')
         
     return redirect(url_for('users.index'))

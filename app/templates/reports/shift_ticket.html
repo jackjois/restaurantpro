@@ -131,7 +131,7 @@
             <h2>{{ restaurant.name if restaurant else 'RestaurantPro' }}</h2>
             <div class="font-bold">*** REPORTE CORTE ***</div>
             <div style="font-size: 0.85rem;">TURNO DE CAJA #{{ num_turno }}</div>
-            <div style="font-size: 0.85rem;">Impreso: {{ session.closing_time|peru_time|attr('strftime')('%d/%m/%Y %H:%M') if
+            <div style="font-size: 0.85rem;">Impreso: {{ session.closing_time|peru_time('%d/%m/%Y %H:%M') if
                 session.closing_time else 'En curso' }}</div>
         </div>
 
@@ -143,11 +143,11 @@
         </div>
         <div class="item-row">
             <span>Inicio:</span>
-            <span>{{ session.opening_time|peru_time|attr('strftime')('%H:%M %p') }}</span>
+            <span>{{ session.opening_time|peru_time('%H:%M %p') }}</span>
         </div>
         <div class="item-row">
             <span>Término:</span>
-            <span>{{ session.closing_time|peru_time|attr('strftime')('%H:%M %p') if session.closing_time else '--' }}</span>
+            <span>{{ session.closing_time|peru_time('%H:%M %p') if session.closing_time else '--' }}</span>
         </div>
 
         <div class="divider"></div>

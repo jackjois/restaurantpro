@@ -29,10 +29,9 @@ class Order(db.Model):
     def generate_order_number():
         """Genera un número de pedido único basado en secuencia de BD."""
         try:
-            with db.session.begin_nested():
-                seq = db.session.execute(db.text("SELECT nextval('order_number_seq')")).scalar()
-                date_part = datetime.now(timezone.utc).strftime('%Y%m%d')
-                return f'ORD-{date_part}-{seq:04d}'
+            seq = db.session.execute(db.text("SELECT nextval('order_number_seq')")).scalar()
+            date_part = datetime.now(timezone.utc).strftime('%Y%m%d')
+            return f'ORD-{date_part}-{seq:04d}'
         except Exception:
             import random, string
             chars = string.ascii_uppercase + string.digits

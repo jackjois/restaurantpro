@@ -65,7 +65,7 @@ def sales():
     # === CÁLCULOS GERENCIALES (KPIs) ===
     total_sales = 0
     total_costs = 0
-    total_orders = len(payments)
+    seen_order_ids = set()
     
     # === AGRUPACIONES PARA GRÁFICOS ===
     # 1. Ventas por Día (Gráfico de Líneas)
@@ -87,12 +87,15 @@ def sales():
         sales_by_method[method] += amount
         total_sales += amount
         
-        # Calcular costos fijos del pedido correspondiente
-        if p.order and p.order.items:
-            for item in p.order.items:
-                if item.status != 'cancelled' and item.product:
-                    total_costs += float(item.product.cost or 0) * int(item.quantity or 1)
+        # Calcular costos UNA VEZ por pedido (evitar duplicar en split payments)
+        if p.order_id and p.order_id not in seen_order_ids:
+            seen_order_ids.add(p.order_id)
+            if p.order and p.order.items:
+                for item in p.order.items:
+                    if item.status != 'cancelled' and item.product:
+                        total_costs += float(item.product.cost or 0) * int(item.quantity or 1)
 
+    total_orders = len(seen_order_ids)
     avg_ticket = total_sales / total_orders if total_orders > 0 else 0
     gross_profit = total_sales - total_costs
     margin_percentage = (gross_profit / total_sales * 100) if total_sales > 0 else 0

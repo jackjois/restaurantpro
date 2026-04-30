@@ -5,7 +5,7 @@ from app.models.table import Table
 from app.models.payment import Payment
 from app import db
 from sqlalchemy import func
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from app.utils.decorators import role_required # <-- Candado de seguridad
 from app.constants import PERU_TZ
 

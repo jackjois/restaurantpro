@@ -316,7 +316,7 @@
                                             {% if ro.table_rel %}Mesa {{ ro.table_rel.number }}{% else %}{{ 'Delivery'
                                             if ro.order_type == 'delivery' else 'Para Llevar' }}{% endif %}
                                             {% endif %}
-                                            • <i class="bi bi-clock-history"></i> {{ ro.created_at|peru_time|attr('strftime')('%H:%M') }}
+                                            • <i class="bi bi-clock-history"></i> {{ ro.created_at|peru_time('%H:%M') }}
                                         </small>
                                     </div>
                                 </div>

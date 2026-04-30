@@ -160,7 +160,7 @@
                     </div>
                     <div class="bg-light rounded p-2 text-center text-muted lh-1 border border-white shadow-sm">
                         <i class="bi bi-clock d-block mb-1"></i>
-                        <small class="fw-bold">{{ o.created_at|peru_time|attr('strftime')('%H:%M') }}</small>
+                        <small class="fw-bold">{{ o.created_at|peru_time('%H:%M') }}</small>
                     </div>
                 </div>
                 

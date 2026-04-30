@@ -48,7 +48,7 @@
                                 <div>
                                     <input class="form-check-input me-2 split-item-checkbox" type="checkbox" name="item_ids" value="{{ item.id }}" data-price="{{ item.subtotal }}" id="item_{{ item.id }}">
                                     <label class="form-check-label stretched-link" for="item_{{ item.id }}">
-                                        <strong>{{ item.quantity }}x {{ item.product.name }}</strong>
+                                        <strong>{{ item.quantity }}x {{ item.product.name if item.product else 'Producto eliminado' }}</strong>
                                     </label>
                                 </div>
                                 <span class="badge bg-light text-dark fs-6 border">S/ {{ "%.2f"|format(item.subtotal) }}</span>

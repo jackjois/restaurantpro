@@ -32,7 +32,7 @@
         <div class="text-center border-bottom pb-2">
             <div class="fw-bold" style="font-size: 14px;">{{ restaurant.name|upper if restaurant else 'RESTAURANTE' }}</div>
             <div class="fw-bold text-large mt-1">PEDIDO DE COCINA</div>
-            <div>Fecha: {{ order.created_at|peru_time|attr('strftime')('%d/%m/%Y %H:%M') }}</div>
+            <div>Fecha: {{ order.created_at|peru_time('%d/%m/%Y %H:%M') }}</div>
             <div>Mozo: {{ current_user.username }}</div>
         </div>
         

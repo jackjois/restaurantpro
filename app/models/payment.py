@@ -17,12 +17,12 @@ class Payment(db.Model):
     
     order = db.relationship('Order', backref=db.backref('payments', lazy=True))
     invoice = db.relationship('Invoice', backref=db.backref('payment_rel', lazy=True, uselist=False))
-    order_items = db.relationship('OrderItem', backref='payment_rel_item', lazy=True)
+    order_items = db.relationship('OrderItem', backref='payment_rel_item', lazy=True, foreign_keys='OrderItem.payment_id')
 
 class Invoice(db.Model):
     __tablename__ = 'invoices'
     id = db.Column(db.Integer, primary_key=True)
-    payment_id = db.Column(db.Integer, db.ForeignKey('payments.id'))
+    payment_id = db.Column(db.Integer, db.ForeignKey('payments.id'), unique=True)
     invoice_type = db.Column(db.String(50), nullable=False)
     document_number = db.Column(db.String(50), unique=True, nullable=True)
     customer_name = db.Column(db.String(150))

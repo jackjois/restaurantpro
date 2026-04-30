@@ -1,7 +1,6 @@
-import os
 import time
 from werkzeug.utils import secure_filename
-from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
+from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required
 from app.models.setting import Setting
 from app import db
