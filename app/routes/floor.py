@@ -41,9 +41,19 @@ def index():
     """Renderiza la vista Floor & Orders (template standalone dark)."""
     # Asegurar que exista el producto Taper para el cobro rápido en la SPA
     taper = Product.query.filter(Product.name.ilike('%Taper%')).first()
-    if not taper:
-        taper = Product(name='Taper Descartable', price=1.00, is_available=True, track_stock=False)
-        db.session.add(taper)
+    if not taper or not taper.category_id:
+        cat = Category.query.filter(Category.name.ilike('%EMPAQUES%')).first()
+        if not cat:
+            cat = Category(name='EMPAQUES', is_active=True)
+            db.session.add(cat)
+            db.session.flush()
+        
+        if not taper:
+            taper = Product(name='Taper Descartable', price=1.00, category_id=cat.id, is_available=True, track_stock=False)
+            db.session.add(taper)
+        else:
+            taper.category_id = cat.id
+            
         db.session.commit()
     return render_template('floor/floor.html')
 
