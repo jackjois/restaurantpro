@@ -1007,7 +1007,7 @@
 
             document.getElementById('btnCheckout').addEventListener('click', () => {
                 if (!selectedOrder) return;
-                window.open(`${CASHIER_CHECKOUT_URL}${selectedOrder.id}`, '_blank');
+                window.location.href = `${CASHIER_CHECKOUT_URL}${selectedOrder.id}`;
             });
 
             document.getElementById('btnKOT').addEventListener('click', async () => {
@@ -1228,7 +1228,7 @@
                         closeModal('modalSplit');
                         toast('Cuenta separada. Abriendo cobro...', 'success');
                         fetchStatus();
-                        window.open(`${CASHIER_CHECKOUT_URL}${res.new_order_id}`, '_blank');
+                        window.location.href = `${CASHIER_CHECKOUT_URL}${res.new_order_id}`;
                     } else { toast(res.error, 'error'); }
                 } catch (e) { console.error(e); toast('Error de red', 'error'); }
             };
