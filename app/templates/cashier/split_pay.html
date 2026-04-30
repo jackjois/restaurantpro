@@ -71,8 +71,8 @@
                 </div>
             </div>
             
-            <!-- Teclado Numérico (Solo Efectivo) -->
-            <div class="card shadow-sm border-0 mt-3" id="numpad_container" style="display: none;">
+            <!-- Teclado Numérico (Para todos los métodos) -->
+            <div class="card shadow-sm border-0 mt-3" id="numpad_container">
                 <div class="card-body p-3">
                     <div class="row g-2 mb-2">
                         <div class="col-3"><button type="button" class="btn w-100 numpad-btn numpad-btn-quick" onclick="addAmount(10)">+10</button></div>
@@ -178,6 +178,11 @@
         
         let currentTotal = 0;
 
+        // Lógica para la calculadora de vuelto
+        const paymentMethodSelect = document.getElementById('payment_method');
+        const amountReceivedInput = document.getElementById('amount_received');
+        const changeDueDisplay = document.getElementById('change_due');
+
         function calcularTotal() {
             currentTotal = 0;
             let count = 0;
@@ -192,16 +197,10 @@
             
             if (count === 0) {
                 btnSubmit.disabled = true;
-                if (paymentMethodSelect.value === 'cash') {
-                    changeDueDisplay.innerText = 'S/ 0.00';
-                    changeDueDisplay.className = 'form-control form-control-lg bg-light text-muted fw-bold shadow-sm d-flex align-items-center';
-                }
+                changeDueDisplay.innerText = 'S/ 0.00';
+                changeDueDisplay.className = 'form-control form-control-lg bg-light text-muted fw-bold shadow-sm d-flex align-items-center';
             } else {
-                if (paymentMethodSelect.value !== 'cash') {
-                    btnSubmit.disabled = false;
-                } else {
-                    calculateChange();
-                }
+                calculateChange();
             }
         }
 
@@ -223,30 +222,7 @@
             });
         });
 
-        // Lógica para la calculadora de vuelto
-        const paymentMethodSelect = document.getElementById('payment_method');
-        const cashCalcSection = document.getElementById('cash_calculator_section');
-        const amountReceivedInput = document.getElementById('amount_received');
-        const changeDueDisplay = document.getElementById('change_due');
-
-        function toggleCashCalculator() {
-            const numpad = document.getElementById('numpad_container');
-            if (paymentMethodSelect.value === 'cash') {
-                cashCalcSection.style.display = 'flex';
-                if (numpad) numpad.style.display = 'block';
-                calcularTotal(); // Valida el estado del botón y calcula el vuelto
-            } else {
-                cashCalcSection.style.display = 'none';
-                if (numpad) numpad.style.display = 'none';
-                amountReceivedInput.value = '';
-                changeDueDisplay.innerText = 'S/ 0.00';
-                changeDueDisplay.className = 'form-control form-control-lg bg-success bg-opacity-10 text-success fw-bold shadow-sm d-flex align-items-center';
-                calcularTotal(); // Reactiva el botón si hay items seleccionados
-            }
-        }
-
         function calculateChange() {
-            if (paymentMethodSelect.value !== 'cash') return;
             if (currentTotal === 0) return;
 
             const received = parseFloat(amountReceivedInput.value);
@@ -271,7 +247,7 @@
             }
         }
 
-        paymentMethodSelect.addEventListener('change', toggleCashCalculator);
+        paymentMethodSelect.addEventListener('change', calculateChange);
         
         let currentInput = "";
         
@@ -321,7 +297,6 @@
         };
 
         // Inicializar
-        toggleCashCalculator();
         calcularTotal();
     });
 </script>
