@@ -4,6 +4,7 @@ from app.models.setting import Setting
 from app.constants import PERU_TZ
 import io
 from datetime import timezone, timedelta
+from app.utils.formatters import format_payment_method
 
 def generate_sales_excel(payments):
     wb = openpyxl.Workbook()
@@ -67,7 +68,7 @@ def generate_sales_excel(payments):
             fecha_str, 
             modalidad,
             cliente,
-            p.payment_method.upper(), 
+            format_payment_method(p.payment_method).upper(), 
             p.status.upper(),
             monto_base,
             monto_envio,

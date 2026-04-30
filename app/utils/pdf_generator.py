@@ -4,6 +4,7 @@ from app.models.setting import Setting # <-- Importamos las configuraciones
 from app.constants import PERU_TZ
 import io
 from datetime import timezone, timedelta
+from app.utils.formatters import format_payment_method
 
 def generate_sales_pdf(payments):
     output = io.BytesIO()
@@ -33,7 +34,7 @@ def generate_sales_pdf(payments):
                 p_time = p_time.replace(tzinfo=timezone.utc)
             fecha = p_time.astimezone(PERU_TZ).strftime('%d/%m/%Y %H:%M')
             
-            metodo = p.payment_method.upper()
+            metodo = format_payment_method(p.payment_method).upper()
             monto_total = float(p.amount)
             monto_envio = float(o.delivery_fee) if o.order_type == 'delivery' else 0.00
             

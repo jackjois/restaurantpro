@@ -212,7 +212,7 @@
                     {% endif %}
                 </td>
                 <td>
-                    <span class="badge-soft-secondary text-uppercase"><i class="bi bi-wallet-fill me-1"></i> {{ p.payment_method }}</span>
+                    <span class="badge-soft-secondary text-uppercase"><i class="bi bi-wallet-fill me-1"></i> {{ p.payment_method | format_payment_method }}</span>
                 </td>
                 <td class="fw-bold text-danger">
                     S/ {{ "%.2f"|format(p.order.delivery_fee if p.order.order_type == 'delivery' else 0) }}

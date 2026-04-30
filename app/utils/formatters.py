@@ -13,3 +13,15 @@ def safe_float(value, default=0.0, nullable=False):
         return float(str(value).strip())
     except ValueError:
         return None if nullable else default
+
+def format_payment_method(val):
+    if not val:
+        return 'Desconocido'
+    methods = {
+        'cash': 'Efectivo',
+        'card': 'Tarjeta (Visa/Mastercard)',
+        'yape': 'Yape',
+        'plin': 'Plin',
+        'transfer': 'Transferencia'
+    }
+    return methods.get(val.lower(), val.upper())

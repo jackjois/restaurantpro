@@ -104,7 +104,7 @@
 
         <div class="border-top mt-1 pt-1 mb-1 text-center">
             {% if payment %}
-            <div>Método de pago: {{ payment.payment_method | upper }}</div>
+            <div>Método de pago: {{ payment.payment_method | format_payment_method | upper }}</div>
             {% endif %}
         </div>
 

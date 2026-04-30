@@ -12,6 +12,7 @@ from app.utils.pdf_generator import generate_sales_pdf
 from app.constants import PERU_TZ
 import collections
 from datetime import datetime, timezone, timedelta
+from app.utils.formatters import format_payment_method
 
 reports_bp = Blueprint('reports', __name__, url_prefix='/reports')
 
@@ -81,7 +82,7 @@ def sales():
         date_str = peru_date.strftime('%Y-%m-%d')
         
         amount = float(p.amount)
-        method = p.payment_method.upper()
+        method = format_payment_method(p.payment_method).upper()
         
         sales_by_date[date_str] += amount
         sales_by_method[method] += amount

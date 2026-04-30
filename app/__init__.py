@@ -144,6 +144,11 @@ def create_app(config_class=Config):
             return result.strftime(fmt)
         return result
         
+    @app.template_filter('format_payment_method')
+    def filter_format_payment_method(val):
+        from app.utils.formatters import format_payment_method
+        return format_payment_method(val)
+        
     @app.after_request
     def add_security_headers(response):
         response.headers['X-Frame-Options'] = 'DENY'
