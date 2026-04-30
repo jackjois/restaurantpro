@@ -363,6 +363,12 @@ def process_split_pay(order_id):
         flash('No seleccionaste ningún plato para cobrar.', 'warning')
         return redirect(url_for('cashier.split_pay', order_id=order_id))
 
+    try:
+        item_ids = [int(i) for i in item_ids]
+    except ValueError:
+        flash('IDs de platos inválidos.', 'danger')
+        return redirect(url_for('cashier.split_pay', order_id=order_id))
+
     payment_method = request.form.get('payment_method')
     reference_code = request.form.get('reference_code', '')
     invoice_type = request.form.get('invoice_type')
