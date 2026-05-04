@@ -94,6 +94,8 @@ CREATE TABLE IF NOT EXISTS orders (
     order_number VARCHAR(50) UNIQUE,
     status VARCHAR(50) DEFAULT 'pending',
     total_amount NUMERIC(10,2) DEFAULT 0.00,
+    discount_percent NUMERIC(10,2) DEFAULT 0.00,
+    tip NUMERIC(10,2) DEFAULT 0.00,
     notes TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
@@ -118,6 +120,9 @@ CREATE TABLE IF NOT EXISTS order_items (
     status VARCHAR(50) DEFAULT 'pending',
     notes TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
+    is_printed BOOLEAN DEFAULT FALSE,
+    is_paid BOOLEAN DEFAULT FALSE,
+    payment_id INTEGER REFERENCES payments(id),
     CONSTRAINT chk_order_item_status CHECK (status IN ('pending', 'preparing', 'ready', 'delivered', 'cancelled'))
 );
 
@@ -241,7 +246,7 @@ CREATE TABLE IF NOT EXISTS reservations (
     guest_count INTEGER DEFAULT 1,
     status VARCHAR(50) DEFAULT 'pending',
     notes TEXT,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
+    created_at TIMESTAMPTZ DEFAULT timezone('utc', now()),
     CONSTRAINT chk_reservation_status CHECK (status IN ('pending', 'confirmed', 'cancelled', 'completed'))
 );
 
