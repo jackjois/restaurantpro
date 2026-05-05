@@ -151,25 +151,21 @@ def checkout(order_id):
     if order.status == 'paid':
         flash('Este pedido ya fue pagado.', 'warning')
         return redirect(url_for('cashier.pos'))
-        
-    # Calcular total real de la orden (incluye envío, propina, descuento)
-    subtotal = sum(float(item.subtotal) for item in order.items if item.status != 'cancelled')
-    discount_pct = float(order.discount_percent or 0)
-    tip_val = float(order.tip or 0)
-    delivery_fee_val = float(order.delivery_fee or 0)
-    
-    discount_amount = round(subtotal * discount_pct / 100, 2)
-    grand_total = round(subtotal - discount_amount + tip_val + delivery_fee_val, 2)
-    
-    # Restar lo que ya se haya pagado (por split_pay)
+
+    if order.status == 'cancelled':
+        flash('No se puede cobrar una orden anulada.', 'danger')
+        return redirect(url_for('cashier.pos'))
+
+    bd = order.get_breakdown()
+
     payments_done = Payment.query.filter_by(order_id=order.id, status='completed').all()
     already_paid = sum(float(p.amount) for p in payments_done)
-    
-    remaining_amount = max(0.0, round(grand_total - already_paid, 2))
-        
-    return render_template('cashier/payments.html', order=order, remaining_amount=remaining_amount, 
-                           subtotal=subtotal, discount_amount=discount_amount, tip_val=tip_val, 
-                           delivery_fee_val=delivery_fee_val, already_paid=already_paid, grand_total=grand_total)
+
+    remaining_amount = max(0.0, round(bd['grand_total'] - already_paid, 2))
+
+    return render_template('cashier/payments.html', order=order, remaining_amount=remaining_amount,
+        subtotal=bd['subtotal'], discount_amount=bd['discount_amount'], tip_val=bd['tip_val'],
+        delivery_fee_val=bd['delivery_fee_val'], already_paid=already_paid, grand_total=bd['grand_total'])
 
 @cashier_bp.route('/pay/<int:order_id>', methods=['POST'])
 @login_required
@@ -190,41 +186,32 @@ def pay(order_id):
         return redirect(url_for('cashier.pos'))
 
     if not order.can_transition_to('paid'):
-        flash(f'La orden está en estado "{order.status}" y no puede ser cobrada aún. Debe estar "served".', 'danger')
+        flash(f'La orden está en estado "{order.status}" y no puede ser cobrada.', 'danger')
         return redirect(url_for('cashier.pos'))
-    
+
     amount = safe_float(request.form.get('amount'), default=0.0)
     payment_method = request.form.get('payment_method')
     reference_code = request.form.get('reference_code', '')
     invoice_type = request.form.get('invoice_type')
     customer_name = request.form.get('customer_name', 'Cliente Varios')
     customer_document = request.form.get('customer_document', '00000000')
-    
-    # === VALIDACIONES DE SEGURIDAD ===
+
     allowed_methods = ('cash', 'card', 'yape', 'plin', 'transfer')
     if payment_method not in allowed_methods:
         flash('Método de pago no válido.', 'danger')
         return redirect(url_for('cashier.checkout', order_id=order_id))
-    
+
     allowed_invoice_types = ('boleta', 'factura')
     if invoice_type not in allowed_invoice_types:
         flash('Tipo de comprobante no válido.', 'danger')
         return redirect(url_for('cashier.checkout', order_id=order_id))
-    
-    # Calcular total real de la orden (incluye envío, propina, descuento)
-    subtotal = sum(float(item.subtotal) for item in order.items if item.status != 'cancelled')
-    discount_pct = float(order.discount_percent or 0)
-    tip_val = float(order.tip or 0)
-    delivery_fee_val = float(order.delivery_fee or 0)
-    
-    discount_amount = round(subtotal * discount_pct / 100, 2)
-    grand_total = round(subtotal - discount_amount + tip_val + delivery_fee_val, 2)
-    
-    # Restar lo que ya se haya pagado (por split_pay)
+
+    bd = order.get_breakdown()
+
     payments_done = Payment.query.filter_by(order_id=order.id, status='completed').all()
     already_paid = sum(float(p.amount) for p in payments_done)
-    
-    remaining_amount = max(0.0, round(grand_total - already_paid, 2))
+
+    remaining_amount = max(0.0, round(bd['grand_total'] - already_paid, 2))
     
     if amount < remaining_amount:
         flash(f'El monto (S/ {amount:.2f}) no puede ser menor al saldo pendiente (S/ {remaining_amount:.2f}).', 'danger')
@@ -444,27 +431,26 @@ def process_split_pay(order_id):
         all_paid = all(item.is_paid or item.status == 'cancelled' for item in order.items)
 
         if all_paid:
-            # Verificar que no quede saldo pendiente por propina/delivery/descuento
+            bd = order.get_breakdown()
             all_payments = Payment.query.filter_by(order_id=order.id, status='completed').all()
             total_paid = sum(float(p.amount) for p in all_payments)
-            full_subtotal = sum(float(it.subtotal) for it in order.items if it.status != 'cancelled')
-            full_discount = round(full_subtotal * float(order.discount_percent or 0) / 100, 2)
-            full_grand_total = round(full_subtotal - full_discount + float(order.tip or 0) + float(order.delivery_fee or 0), 2)
-            if total_paid < full_grand_total:
+            if total_paid < bd['grand_total']:
                 all_paid = False
 
-    if all_paid:
-        if not order.can_transition_to('paid'):
-            flash(f'La orden está en estado "{order.status}" y no puede ser marcada como pagada aún.', 'danger')
-            db.session.rollback()
-            return redirect(url_for('cashier.split_pay', order_id=order_id))
-        order.status = 'paid'
-            table = Table.query.get(order.table_id)
-            if table:
-                unreads = Notification.query.filter(Notification.is_read == False, Notification.message.like(f"%Mesa {table.number}%")).all()
-                for n in unreads: n.is_read = True
-                table.status = 'free'
-            msg_extra = "¡Todos los platos fueron pagados! Mesa liberada."
+            if all_paid:
+                if not order.can_transition_to('paid'):
+                    flash(f'La orden está en estado "{order.status}" y no puede ser marcada como pagada.', 'danger')
+                    db.session.rollback()
+                    return redirect(url_for('cashier.split_pay', order_id=order_id))
+                order.status = 'paid'
+                table = Table.query.get(order.table_id)
+                if table:
+                    unreads = Notification.query.filter(Notification.is_read == False, Notification.message.like(f"%Mesa {table.number}%")).all()
+                    for n in unreads: n.is_read = True
+                    table.status = 'free'
+                msg_extra = "¡Todos los platos fueron pagados! Mesa liberada."
+            else:
+                msg_extra = "Cobro parcial exitoso. Aún quedan platos por pagar."
         else:
             msg_extra = "Cobro parcial exitoso. Aún quedan platos por pagar."
 

@@ -283,6 +283,8 @@ def api_create_order(table_id):
         )
         table.status = 'occupied'
         db.session.add(new_order)
+        db.session.flush()
+        new_order.recalculate_total()
         db.session.commit()
         AppSignal.emit('floor_order_created', 'orders')
 
@@ -430,13 +432,15 @@ def api_remove_item(order_id, item_id):
 
         db.session.delete(item)
         order.recalculate_total()
-        
-        # Check if it was the last item. If so, cancel the order and free the table
-        if len(order.items) <= 1: # <=1 because the item is still in the collection until commit
-            order.status = 'cancelled'
-            order.notes = (order.notes or '') + ' [Cancelada automáticamente por falta de ítems]'
-            if order.table_rel:
-                order.table_rel.status = 'free'
+
+        if len(order.items) <= 1:
+            if order.can_transition_to('cancelled'):
+                order.status = 'cancelled'
+                order.notes = (order.notes or '') + ' [Cancelada automáticamente por falta de ítems]'
+                if order.table_rel:
+                    order.table_rel.status = 'free'
+        else:
+            order.sync_status_from_items()
                 
         db.session.commit()
         AppSignal.emit('floor_item_removed', 'order_items')
@@ -536,9 +540,9 @@ def api_update_order(order_id):
         if 'tip' in data:
             order.tip = max(0, safe_float(data['tip'], default=0.0))
 
-        try:
-            order.recalculate_total()
-            db.session.commit()
+    try:
+        order.recalculate_total()
+        db.session.commit()
         return jsonify({'success': True, 'order': _serialize_order(order)})
     except Exception as e:
         db.session.rollback()
@@ -814,9 +818,10 @@ def api_split_order(order_id):
         original_order.recalculate_total()
         
         if remaining_items_count == 0:
-            original_order.status = 'cancelled'
-            if original_order.table_rel:
-                original_order.table_rel.status = 'free'
+            if original_order.can_transition_to('cancelled'):
+                original_order.status = 'cancelled'
+                if original_order.table_rel:
+                    original_order.table_rel.status = 'free'
                 
         db.session.commit()
         AppSignal.emit('floor_order_split', 'orders')

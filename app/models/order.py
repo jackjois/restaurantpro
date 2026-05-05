@@ -22,13 +22,13 @@ class Order(db.Model):
     tip = db.Column(db.Numeric(10, 2), default=0)
     created_at = db.Column(db.DateTime(timezone=True), default=_now_utc)
     updated_at = db.Column(db.DateTime(timezone=True), default=_now_utc, onupdate=_now_utc)
-    
+
     items = db.relationship('OrderItem', backref='order_rel', cascade='all, delete-orphan', lazy=True)
 
     VALID_TRANSITIONS = {
-        'pending': ['preparing', 'cancelled'],
-        'preparing': ['ready', 'cancelled'],
-        'ready': ['served', 'cancelled'],
+        'pending': ['preparing', 'cancelled', 'paid'],
+        'preparing': ['ready', 'cancelled', 'paid'],
+        'ready': ['served', 'cancelled', 'paid'],
         'served': ['paid', 'cancelled'],
         'paid': [],
         'cancelled': [],
@@ -48,12 +48,47 @@ class Order(db.Model):
         self.total_amount = round(items_sub - disc + float(self.tip or 0) + float(self.delivery_fee or 0), 2)
         return self.total_amount
 
+    def get_breakdown(self):
+        items_sub = sum(float(i.subtotal) for i in self.items if i.status != 'cancelled')
+        discount_pct = float(self.discount_percent or 0)
+        discount_amount = round(items_sub * discount_pct / 100, 2)
+        tip_val = float(self.tip or 0)
+        delivery_fee_val = float(self.delivery_fee or 0)
+        grand_total = round(items_sub - discount_amount + tip_val + delivery_fee_val, 2)
+        self.total_amount = grand_total
+        return {
+            'subtotal': items_sub,
+            'discount_amount': discount_amount,
+            'tip_val': tip_val,
+            'delivery_fee_val': delivery_fee_val,
+            'grand_total': grand_total,
+        }
+
+    def sync_status_from_items(self):
+        active = [i for i in self.items if i.status != 'cancelled']
+        if not active:
+            if self.status not in ('paid', 'cancelled'):
+                self.status = 'cancelled'
+            return self.status
+        statuses = {i.status for i in active}
+        if statuses == {'delivered'}:
+            if self.can_transition_to('served'):
+                self.status = 'served'
+        elif statuses <= {'ready', 'delivered'} and 'ready' in statuses:
+            if self.status == 'pending' and self.can_transition_to('preparing'):
+                self.status = 'preparing'
+            elif self.status == 'preparing' and self.can_transition_to('ready'):
+                self.status = 'ready'
+        elif 'preparing' in statuses and self.status == 'pending':
+            if self.can_transition_to('preparing'):
+                self.status = 'preparing'
+        return self.status
+
     def can_transition_to(self, new_status):
         return new_status in self.VALID_TRANSITIONS.get(self.status, [])
 
     @staticmethod
     def generate_order_number():
-        """Genera un número de pedido único basado en secuencia de BD."""
         try:
             seq = db.session.execute(db.text("SELECT nextval('order_number_seq')")).scalar()
             date_part = datetime.now(timezone.utc).strftime('%Y%m%d')

@@ -60,4 +60,6 @@ class Config:
     SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
     SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY")
 
+    RATELIMIT_STORAGE_URI = os.environ.get("REDIS_URL", "memory://")
+
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024

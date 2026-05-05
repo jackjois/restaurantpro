@@ -1,6 +1,6 @@
 import os
 from datetime import timezone
-from flask import Flask, send_from_directory, url_for, render_template
+from flask import Flask, send_from_directory, url_for, render_template, request
 import logging
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
@@ -15,7 +15,20 @@ db = SQLAlchemy()
 login_manager = LoginManager()
 bcrypt = Bcrypt()
 csrf = CSRFProtect()
-limiter = Limiter(key_func=get_remote_address, default_limits=["200 per day", "50 per hour"])
+
+def get_real_ip():
+    forwarded = request.headers.get("X-Forwarded-For", "")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return get_remote_address()
+
+limiter = Limiter(
+    key_func=get_real_ip,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri=os.environ.get("REDIS_URL", "memory://"),
+    swallow_errors=True,
+    headers_enabled=True,
+)
 
 def create_app(config_class=Config):
     app = Flask(__name__)

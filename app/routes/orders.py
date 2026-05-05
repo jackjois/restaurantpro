@@ -144,6 +144,8 @@ def create(table_id):
         )
         table.status = 'occupied'
         db.session.add(new_order)
+        db.session.flush()
+        new_order.recalculate_total()
         db.session.commit()
         AppSignal.emit('order_created', 'orders')
 
@@ -259,9 +261,9 @@ def add_item(id):
 
     subtotal = product.price * quantity
 
-        item = OrderItem(order_id=order.id, product_id=product.id, quantity=quantity, unit_price=product.price, subtotal=subtotal, notes=notes, status='pending')
-        db.session.add(item)
-        order.recalculate_total()
+    item = OrderItem(order_id=order.id, product_id=product.id, quantity=quantity, unit_price=product.price, subtotal=subtotal, notes=notes, status='pending')
+    db.session.add(item)
+    order.recalculate_total()
     db.session.commit()
     AppSignal.emit('item_added', 'order_items')
     return redirect(url_for('orders.details', id=order.id))
@@ -346,7 +348,17 @@ def update_item_status(item_id):
             user_id=None
         )
 
+    order.sync_status_from_items()
+
     db.session.commit()
+    AppSignal.emit('kitchen_status_update', 'order_items')
+
+    if new_status == 'ready':
+        table_num = order.table_rel.number if order.table_rel else 'N/A'
+        dish_name = item.product.name if item.product else 'Producto'
+        mensaje = f"¡El plato {dish_name} de la Mesa {table_num} está listo!"
+        Notification.create(type='system', message=mensaje, user_id=None)
+        db.session.commit()
     AppSignal.emit('kitchen_status_update', 'order_items')
     
     if new_status == 'ready':
