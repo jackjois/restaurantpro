@@ -214,29 +214,33 @@ def shift_ticket(session_id):
     from app.models.cash_expense import CashExpense
     
     session = CashSession.query.get_or_404(session_id)
-    
+
+    if session.status != 'closed':
+        flash('Solo se puede ver el ticket de una sesión cerrada.', 'warning')
+        return redirect(url_for('reports.shifts'))
+
     # Validar acceso
     if current_user.role != 'admin' and session.user_id != current_user.id:
         flash('No tienes permiso para ver este ticket.', 'danger')
         return redirect(url_for('dashboard.index'))
-        
+
     # Calcular número de turno secuencial real (ignorando IDs saltados)
     num_turno = CashSession.query.filter(CashSession.id <= session.id).count()
-    
+
     payments = Payment.query.filter_by(cash_session_id=session.id, status='completed').all()
     expenses = CashExpense.query.filter_by(cash_session_id=session.id).all()
-    
+
     total_sales = sum(float(p.amount) for p in payments)
     total_expenses = sum(float(e.amount) for e in expenses)
     cash_sales = sum(float(p.amount) for p in payments if p.payment_method == 'cash')
     digital_sales = sum(float(p.amount) for p in payments if p.payment_method != 'cash')
-    
-    return render_template('reports/shift_ticket.html', 
-                           session=session, 
-                           payments=payments, 
-                           expenses=expenses,
-                           total_sales=total_sales,
-                           total_expenses=total_expenses,
-                           cash_sales=cash_sales,
-                           digital_sales=digital_sales,
-                           num_turno=num_turno)
+
+    return render_template('reports/shift_ticket.html',
+        session=session,
+        payments=payments,
+        expenses=expenses,
+        total_sales=total_sales,
+        total_expenses=total_expenses,
+        cash_sales=cash_sales,
+        digital_sales=digital_sales,
+        num_turno=num_turno)

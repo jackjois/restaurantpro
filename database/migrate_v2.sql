@@ -247,6 +247,15 @@ END $$;
 
 
 -- ═══════════════════════════════════════════════════════════
+-- 2b. ADD missing columns (if they don't exist)
+-- ═══════════════════════════════════════════════════════════
+DO $$ BEGIN
+IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='cash_sessions' AND column_name='created_at') THEN
+    ALTER TABLE cash_sessions ADD COLUMN created_at TIMESTAMPTZ DEFAULT NOW();
+END IF;
+END $$;
+
+-- ═══════════════════════════════════════════════════════════
 -- 3. REMOVE tax_amount column from invoices (if it exists)
 -- ═══════════════════════════════════════════════════════════
 DO $$ BEGIN
