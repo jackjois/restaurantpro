@@ -88,7 +88,7 @@ def submit_pos(table_id):
 
         total = 0
         for item in cart:
-            product = Product.query.get(item['id'])
+            product = db.session.get(Product, item['id'], with_for_update=True)
             if product:
                 qty = safe_int(item.get('cantidad'), default=1)
                 subtotal = safe_float(product.price, default=0.0) * qty
@@ -272,7 +272,10 @@ def add_item(id):
 @login_required
 @role_required('admin', 'cashier', 'waiter')
 def remove_item(item_id):
-    item = OrderItem.query.get_or_404(item_id)
+    item = db.session.get(OrderItem, item_id, with_for_update=True)
+    if not item:
+        flash('Ítem no encontrado.', 'danger')
+        return redirect(url_for('orders.index'))
     order = db.session.get(Order, item.order_id, with_for_update=True)
     
     if order.status in ['paid', 'cancelled']:
@@ -370,7 +373,10 @@ def update_item_status(item_id):
 @login_required
 @role_required('admin', 'cashier')
 def cancel(id):
-    order = Order.query.get_or_404(id)
+    order = db.session.get(Order, id, with_for_update=True)
+    if not order:
+        flash('Orden no encontrada.', 'danger')
+        return redirect(url_for('orders.index'))
 
     if not order.can_transition_to('cancelled'):
         flash('No se puede anular esta orden en su estado actual.', 'danger')

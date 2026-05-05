@@ -6,7 +6,7 @@ _now_utc = lambda: datetime.now(timezone.utc)
 class Payment(db.Model):
     __tablename__ = 'payments'
     id = db.Column(db.Integer, primary_key=True)
-    order_id = db.Column(db.Integer, db.ForeignKey('orders.id'))
+    order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
     amount = db.Column(db.Numeric(10, 2), nullable=False)
     payment_method = db.Column(db.String(50), nullable=False)
     reference_code = db.Column(db.String(100))
@@ -22,7 +22,7 @@ class Payment(db.Model):
 class Invoice(db.Model):
     __tablename__ = 'invoices'
     id = db.Column(db.Integer, primary_key=True)
-    payment_id = db.Column(db.Integer, db.ForeignKey('payments.id'), unique=True)
+    payment_id = db.Column(db.Integer, db.ForeignKey('payments.id'), unique=True, nullable=False)
     invoice_type = db.Column(db.String(50), nullable=False)
     document_number = db.Column(db.String(50), unique=True, nullable=True)
     customer_name = db.Column(db.String(150))

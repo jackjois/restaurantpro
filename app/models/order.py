@@ -55,7 +55,6 @@ class Order(db.Model):
         tip_val = float(self.tip or 0)
         delivery_fee_val = float(self.delivery_fee or 0)
         grand_total = round(items_sub - discount_amount + tip_val + delivery_fee_val, 2)
-        self.total_amount = grand_total
         return {
             'subtotal': items_sub,
             'discount_amount': discount_amount,

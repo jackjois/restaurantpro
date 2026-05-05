@@ -88,26 +88,26 @@
         <!-- Teclado Numérico (Para todos los métodos) -->
         <div class="card shadow-sm border-0 mt-3" id="numpad_container">
             <div class="card-body p-3">
-                <div class="row g-2 mb-2">
-                    <div class="col-3"><button type="button" class="btn w-100 numpad-btn numpad-btn-quick" onclick="addAmount(10)">+10</button></div>
-                    <div class="col-3"><button type="button" class="btn w-100 numpad-btn numpad-btn-quick" onclick="addAmount(20)">+20</button></div>
-                    <div class="col-3"><button type="button" class="btn w-100 numpad-btn numpad-btn-quick" onclick="addAmount(50)">+50</button></div>
-                    <div class="col-3"><button type="button" class="btn w-100 numpad-btn numpad-btn-quick" onclick="addAmount(100)">+100</button></div>
-                </div>
-                <div class="row g-2">
-                    <div class="col-4"><button type="button" class="btn w-100 numpad-btn" onclick="appendNumber(1)">1</button></div>
-                    <div class="col-4"><button type="button" class="btn w-100 numpad-btn" onclick="appendNumber(2)">2</button></div>
-                    <div class="col-4"><button type="button" class="btn w-100 numpad-btn" onclick="appendNumber(3)">3</button></div>
-                    <div class="col-4"><button type="button" class="btn w-100 numpad-btn" onclick="appendNumber(4)">4</button></div>
-                    <div class="col-4"><button type="button" class="btn w-100 numpad-btn" onclick="appendNumber(5)">5</button></div>
-                    <div class="col-4"><button type="button" class="btn w-100 numpad-btn" onclick="appendNumber(6)">6</button></div>
-                    <div class="col-4"><button type="button" class="btn w-100 numpad-btn" onclick="appendNumber(7)">7</button></div>
-                    <div class="col-4"><button type="button" class="btn w-100 numpad-btn" onclick="appendNumber(8)">8</button></div>
-                    <div class="col-4"><button type="button" class="btn w-100 numpad-btn" onclick="appendNumber(9)">9</button></div>
-                    <div class="col-4"><button type="button" class="btn w-100 numpad-btn numpad-btn-action" onclick="clearAmount()">C</button></div>
-                    <div class="col-4"><button type="button" class="btn w-100 numpad-btn" onclick="appendNumber(0)">0</button></div>
-                    <div class="col-4"><button type="button" class="btn w-100 numpad-btn numpad-btn-action" onclick="appendDot()">.</button></div>
-                    <div class="col-12 mt-2"><button type="button" class="btn w-100 numpad-btn btn-primary text-white" onclick="setExactAmount()" style="background-color: #4318ff; border: none;">Monto Exacto</button></div>
+      <div class="row g-2 mb-2">
+        <div class="col-3"><button type="button" class="btn w-100 numpad-btn numpad-btn-quick" data-action="add" data-val="10">+10</button></div>
+        <div class="col-3"><button type="button" class="btn w-100 numpad-btn numpad-btn-quick" data-action="add" data-val="20">+20</button></div>
+        <div class="col-3"><button type="button" class="btn w-100 numpad-btn numpad-btn-quick" data-action="add" data-val="50">+50</button></div>
+        <div class="col-3"><button type="button" class="btn w-100 numpad-btn numpad-btn-quick" data-action="add" data-val="100">+100</button></div>
+      </div>
+      <div class="row g-2">
+        <div class="col-4"><button type="button" class="btn w-100 numpad-btn" data-action="num" data-val="1">1</button></div>
+        <div class="col-4"><button type="button" class="btn w-100 numpad-btn" data-action="num" data-val="2">2</button></div>
+        <div class="col-4"><button type="button" class="btn w-100 numpad-btn" data-action="num" data-val="3">3</button></div>
+        <div class="col-4"><button type="button" class="btn w-100 numpad-btn" data-action="num" data-val="4">4</button></div>
+        <div class="col-4"><button type="button" class="btn w-100 numpad-btn" data-action="num" data-val="5">5</button></div>
+        <div class="col-4"><button type="button" class="btn w-100 numpad-btn" data-action="num" data-val="6">6</button></div>
+        <div class="col-4"><button type="button" class="btn w-100 numpad-btn" data-action="num" data-val="7">7</button></div>
+        <div class="col-4"><button type="button" class="btn w-100 numpad-btn" data-action="num" data-val="8">8</button></div>
+        <div class="col-4"><button type="button" class="btn w-100 numpad-btn" data-action="num" data-val="9">9</button></div>
+        <div class="col-4"><button type="button" class="btn w-100 numpad-btn numpad-btn-action" data-action="clear">C</button></div>
+        <div class="col-4"><button type="button" class="btn w-100 numpad-btn" data-action="num" data-val="0">0</button></div>
+        <div class="col-4"><button type="button" class="btn w-100 numpad-btn numpad-btn-action" data-action="dot">.</button></div>
+        <div class="col-12 mt-2"><button type="button" class="btn w-100 numpad-btn btn-primary text-white" data-action="exact" style="background-color: #4318ff; border: none;">Monto Exacto</button></div>
                 </div>
             </div>
         </div>
@@ -242,43 +242,55 @@
         calculateChange();
     });
 
-    // Funciones del teclado numérico
-    window.appendNumber = function(num) {
-        if (currentInput === "0" && num === 0) return;
-        if (currentInput === "0" && num !== 0) currentInput = "";
-        currentInput += num;
-        updateAmountInput();
-    };
+// Funciones del teclado numérico
+function appendNumber(num) {
+  if (currentInput === "0" && num === 0) return;
+  if (currentInput === "0" && num !== 0) currentInput = "";
+  currentInput += num;
+  updateAmountInput();
+}
 
-    window.appendDot = function() {
-        if (!currentInput.includes(".")) {
-            if (currentInput === "") currentInput = "0";
-            currentInput += ".";
-            updateAmountInput();
-        }
-    };
+function appendDot() {
+  if (!currentInput.includes(".")) {
+    if (currentInput === "") currentInput = "0";
+    currentInput += ".";
+    updateAmountInput();
+  }
+}
 
-    window.addAmount = function(val) {
-        let current = parseFloat(currentInput);
-        if (isNaN(current)) current = 0;
-        currentInput = (current + val).toString();
-        updateAmountInput();
-    };
+function addAmount(val) {
+  let current = parseFloat(currentInput);
+  if (isNaN(current)) current = 0;
+  currentInput = (current + val).toString();
+  updateAmountInput();
+}
 
-    window.clearAmount = function() {
-        currentInput = "";
-        updateAmountInput();
-    };
+function clearAmount() {
+  currentInput = "";
+  updateAmountInput();
+}
 
-    window.setExactAmount = function() {
-        currentInput = totalAmount.toString();
-        updateAmountInput();
-    };
+function setExactAmount() {
+  currentInput = totalAmount.toString();
+  updateAmountInput();
+}
 
-    window.updateAmountInput = function() {
-        amountReceivedInput.value = currentInput;
-        calculateChange();
-    };
+function updateAmountInput() {
+  amountReceivedInput.value = currentInput;
+  calculateChange();
+}
+
+document.getElementById('numpad_container').addEventListener('click', function(e) {
+  const btn = e.target.closest('[data-action]');
+  if (!btn) return;
+  const action = btn.dataset.action;
+  const val = parseFloat(btn.dataset.val);
+  if (action === 'num') appendNumber(val);
+  else if (action === 'add') addAmount(val);
+  else if (action === 'dot') appendDot();
+  else if (action === 'clear') clearAmount();
+  else if (action === 'exact') setExactAmount();
+});
 
     // Inicializar estado
     calculateChange();

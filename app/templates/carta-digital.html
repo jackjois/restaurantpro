@@ -85,11 +85,11 @@
 
         <!-- Scroll de Categorías -->
         <div class="flex overflow-x-auto hide-scrollbar gap-3 snap-x pb-1" id="category-container">
-            <button onclick="filtrarPorCategoria('todos')" id="btn-todos" class="category-pill active snap-start px-6 py-2 rounded-full text-sm font-medium bg-white text-gray-600 shadow-sm border border-gray-200 shrink-0">
+            <button data-action="filtrar" data-cat="todos" id="btn-todos" class="category-pill active snap-start px-6 py-2 rounded-full text-sm font-medium bg-white text-gray-600 shadow-sm border border-gray-200 shrink-0">
                 ⭐ Todo
             </button>
             {% for c in categories %}
-            <button onclick="filtrarPorCategoria('cat_{{ c.id }}')" id="btn-cat_{{ c.id }}" class="category-pill snap-start px-6 py-2 rounded-full text-sm font-medium bg-white text-gray-600 shadow-sm border border-gray-200 shrink-0">
+            <button data-action="filtrar" data-cat="cat_{{ c.id }}" id="btn-cat_{{ c.id }}" class="category-pill snap-start px-6 py-2 rounded-full text-sm font-medium bg-white text-gray-600 shadow-sm border border-gray-200 shrink-0">
                 {{ c.name }}
             </button>
             {% endfor %}
@@ -103,7 +103,7 @@
 
     <!-- STICKY CART BUTTON (Mobile App Style) -->
     <div id="sticky-cart-btn" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 w-[92%] max-w-2xl z-40 hidden transition-all">
-        <button onclick="mostrarCarrito()" class="w-full bg-black text-white rounded-2xl py-4 px-5 flex justify-between items-center shadow-2xl hover:bg-gray-900 border border-gray-800">
+        <button data-action="mostrar-carrito" class="w-full bg-black text-white rounded-2xl py-4 px-5 flex justify-between items-center shadow-2xl hover:bg-gray-900 border border-gray-800">
             <div class="flex items-center gap-3">
                 <div class="bg-white/20 px-3 py-1.5 rounded-lg flex items-center justify-center min-w-[32px]">
                     <span class="font-extrabold text-sm" id="cart-qty-pill">0</span>
@@ -115,10 +115,10 @@
     </div>
 
     <!-- BOTTOM SHEET CART DRAWER -->
-    <div id="cart-overlay" class="fixed inset-0 bg-black/60 z-50 hidden backdrop-blur-sm transition-opacity opacity-0" onclick="if(event.target===this)ocultarCarrito()">
+    <div id="cart-overlay" class="fixed inset-0 bg-black/60 z-50 hidden backdrop-blur-sm transition-opacity opacity-0" data-action="overlay-close">
         <div id="cart-drawer-panel" class="absolute bottom-0 w-full max-w-2xl left-1/2 transform -translate-x-1/2 bg-white rounded-t-3xl min-h-[60vh] max-h-[90vh] flex flex-col cart-drawer">
             <!-- Pestaña jaladora visual -->
-            <div class="w-full flex justify-center pt-3 pb-1" onclick="ocultarCarrito()">
+            <div class="w-full flex justify-center pt-3 pb-1" data-action="ocultar-carrito">
                 <div class="w-12 h-1.5 bg-gray-300 rounded-full"></div>
             </div>
             
@@ -134,7 +134,7 @@
                     <span class="text-gray-500 font-bold">Total a pagar</span>
                     <span id="carrito-total" class="font-extrabold text-3xl">S/ 0.00</span>
                 </div>
-                <button id="btn-enviar" onclick="enviarPedido(event)" class="w-full bg-rose-600 text-white text-lg font-bold py-4 rounded-2xl shadow-lg shadow-rose-200 flex justify-center items-center gap-2 active:scale-95 transition-transform">
+                <button id="btn-enviar" data-action="enviar-pedido" class="w-full bg-rose-600 text-white text-lg font-bold py-4 rounded-2xl shadow-lg shadow-rose-200 flex justify-center items-center gap-2 active:scale-95 transition-transform">
                     <i class="fa-solid fa-paper-plane"></i> Confirmar y Enviar a Cocina
                 </button>
             </div>
@@ -179,7 +179,7 @@
 
                 // UberEats Layout Style (Horizontal Card)
                 grid.innerHTML += `
-                <div class="product-list-card bg-white rounded-[20px] p-4 flex items-center gap-4 shadow-sm border border-gray-100" onclick="agregarAlCarrito(${item.id})">
+                <div class="product-list-card bg-white rounded-[20px] p-4 flex items-center gap-4 shadow-sm border border-gray-100" data-action="agregar" data-id="${item.id}">
                     <div class="flex-1 min-w-0 py-1">
                         <h3 class="font-bold text-[1.1rem] leading-tight text-gray-900 mb-1 truncate">${safeNombre}</h3>
                         <p class="text-gray-500 text-xs line-clamp-2 leading-snug mb-2 pr-2">${safeDescripcion}</p>
@@ -290,9 +290,9 @@
                         <span class="font-extrabold text-[1rem]">S/ ${sub.toFixed(2)}</span>
                     </div>
                     <div class="flex items-center gap-2 bg-gray-100 rounded-full px-1 py-1">
-                        <button onclick="cambiarCantidad(${index}, -1); event.stopPropagation();" class="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center font-bold text-lg hover:bg-gray-50">-</button>
+                        <button data-action="cant" data-idx="${index}" data-dir="-1" class="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center font-bold text-lg hover:bg-gray-50">-</button>
                         <span class="font-bold w-4 text-center text-sm">${item.cantidad}</span>
-                        <button onclick="cambiarCantidad(${index}, 1); event.stopPropagation();" class="w-8 h-8 rounded-full bg-black text-white shadow-sm flex items-center justify-center font-bold text-lg hover:bg-gray-900">+</button>
+                        <button data-action="cant" data-idx="${index}" data-dir="1" class="w-8 h-8 rounded-full bg-black text-white shadow-sm flex items-center justify-center font-bold text-lg hover:bg-gray-900">+</button>
                     </div>
                 </div>`;
             });
@@ -349,7 +349,7 @@
                             </div>
                             <h2 class="text-4xl font-extrabold mb-3">¡Oído Cocina!</h2>
                             <p class="text-rose-100 text-lg text-center mb-8">El chef ya recibió tu pedido para la Mesa {{ table.number }}.<br>Prepara tu espacio que va volando 🚀</p>
-                            <button onclick="window.location.reload()" class="bg-white text-rose-600 font-bold px-8 py-3 rounded-full shadow-lg">Pedir algo más</button>
+                            <button data-action="reload" class="bg-white text-rose-600 font-bold px-8 py-3 rounded-full shadow-lg">Pedir algo más</button>
                         </div>
                     `;
                     carrito = [];
@@ -366,7 +366,43 @@
             });
         }
 
-        window.onload = () => { renderMenu(menuItems); };
+        document.getElementById('category-container').addEventListener('click', function(e) {
+  const btn = e.target.closest('[data-action="filtrar"]');
+  if (btn) filtrarPorCategoria(btn.dataset.cat);
+});
+
+document.getElementById('sticky-cart-btn').addEventListener('click', function(e) {
+  const btn = e.target.closest('[data-action="mostrar-carrito"]');
+  if (btn) mostrarCarrito();
+});
+
+document.getElementById('cart-overlay').addEventListener('click', function(e) {
+  if (e.target === this) ocultarCarrito();
+  const closeBtn = e.target.closest('[data-action="ocultar-carrito"]');
+  if (closeBtn) ocultarCarrito();
+  const envBtn = e.target.closest('[data-action="enviar-pedido"]');
+  if (envBtn) enviarPedido(e);
+});
+
+document.getElementById('menu-grid').addEventListener('click', function(e) {
+  const card = e.target.closest('[data-action="agregar"]');
+  if (card) agregarAlCarrito(parseInt(card.dataset.id));
+});
+
+document.getElementById('carrito-items').addEventListener('click', function(e) {
+  const btn = e.target.closest('[data-action="cant"]');
+  if (btn) {
+    e.stopPropagation();
+    cambiarCantidad(parseInt(btn.dataset.idx), parseInt(btn.dataset.dir));
+  }
+});
+
+document.addEventListener('click', function(e) {
+  const btn = e.target.closest('[data-action="reload"]');
+  if (btn) location.reload();
+});
+
+document.addEventListener('DOMContentLoaded', function() { renderMenu(menuItems); });
     </script>
 </body>
 </html>

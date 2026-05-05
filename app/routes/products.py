@@ -17,8 +17,32 @@ products_bp = Blueprint('products', __name__, url_prefix='/products')
 # Extensiones permitidas para las imágenes
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 
+MAGIC_BYTES = {
+    b'\xff\xd8\xff': 'image/jpeg',
+    b'\x89PNG\r\n\x1a\n': 'image/png',
+    b'GIF87a': 'image/gif',
+    b'GIF89a': 'image/gif',
+    b'RIFF': None,
+}
+
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def validate_image_bytes(file_bytes, declared_ext):
+    ext = declared_ext.lower()
+    if ext in ('jpg', 'jpeg'):
+        return file_bytes[:3] == b'\xff\xd8\xff'
+    if ext == 'png':
+        return file_bytes[:8] == b'\x89PNG\r\n\x1a\n'
+    if ext == 'gif':
+        return file_bytes[:6] in (b'GIF87a', b'GIF89a')
+    if ext == 'webp':
+        return file_bytes[:4] == b'RIFF' and file_bytes[8:12] == b'WEBP'
+    return False
+
+def safe_content_type(ext):
+    mapping = {'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png', 'gif': 'image/gif', 'webp': 'image/webp'}
+    return mapping.get(ext.lower(), 'application/octet-stream')
 
 @products_bp.route('/')
 @login_required
@@ -50,21 +74,25 @@ def create():
         image_file = request.files.get('image')
         filename = None
         
-        if image_file and image_file.filename != '' and allowed_file(image_file.filename):
-            filename = secure_filename(image_file.filename)
-            file_ext = filename.rsplit('.', 1)[1].lower()
-            new_filename = f"prod_{int(time.time())}.{file_ext}"
-            file_bytes = image_file.read()
-            
-            try:
-                get_supabase().storage.from_('restaurant_assets').upload(
-                    new_filename, 
-                    file_bytes,
-                    file_options={"content-type": image_file.mimetype}
-                )
-                public_url = get_supabase().storage.from_('restaurant_assets').get_public_url(new_filename)
-                filename = public_url
-            except Exception as e:
+    if image_file and image_file.filename != '' and allowed_file(image_file.filename):
+        filename = secure_filename(image_file.filename)
+        file_ext = filename.rsplit('.', 1)[1].lower()
+        new_filename = f"prod_{int(time.time())}.{file_ext}"
+        file_bytes = image_file.read()
+
+        if not validate_image_bytes(file_bytes, file_ext):
+            flash('El archivo no es una imagen válida.', 'danger')
+            return redirect(url_for('products.index'))
+
+        try:
+            get_supabase().storage.from_('restaurant_assets').upload(
+                new_filename,
+                file_bytes,
+                file_options={"content-type": safe_content_type(file_ext)}
+            )
+            public_url = get_supabase().storage.from_('restaurant_assets').get_public_url(new_filename)
+            filename = public_url
+        except Exception as e:
                 logger.exception('Error subiendo imagen de producto')
                 flash('Error al subir la imagen. Intenta nuevamente.', 'danger')
                 filename = None
@@ -117,29 +145,33 @@ def edit(id):
         
         # Manejo de nueva imagen si se sube una
         image_file = request.files.get('image')
-        if image_file and image_file.filename != '' and allowed_file(image_file.filename):
-            filename = secure_filename(image_file.filename)
-            file_ext = filename.rsplit('.', 1)[1].lower()
-            new_filename = f"prod_{int(time.time())}.{file_ext}"
-            file_bytes = image_file.read()
-            
-            try:
-                # Limpiar imagen anterior del Storage para evitar archivos huérfanos
-                if product.image_url and 'supabase' in product.image_url:
-                    try:
-                        old_file = product.image_url.split('/')[-1].split('?')[0]
-                        get_supabase().storage.from_('restaurant_assets').remove([old_file])
-                    except Exception:
-                        pass  # No fallar si la limpieza no funciona
-                
-                get_supabase().storage.from_('restaurant_assets').upload(
-                    new_filename, 
-                    file_bytes,
-                    file_options={"content-type": image_file.mimetype}
-                )
-                public_url = get_supabase().storage.from_('restaurant_assets').get_public_url(new_filename)
-                product.image_url = public_url
-            except Exception as e:
+    if image_file and image_file.filename != '' and allowed_file(image_file.filename):
+        filename = secure_filename(image_file.filename)
+        file_ext = filename.rsplit('.', 1)[1].lower()
+        new_filename = f"prod_{int(time.time())}.{file_ext}"
+        file_bytes = image_file.read()
+
+        if not validate_image_bytes(file_bytes, file_ext):
+            flash('El archivo no es una imagen válida.', 'danger')
+            return redirect(url_for('products.index', id=id))
+
+        try:
+            # Limpiar imagen anterior del Storage para evitar archivos huérfanos
+            if product.image_url and 'supabase' in product.image_url:
+                try:
+                    old_file = product.image_url.split('/')[-1].split('?')[0]
+                    get_supabase().storage.from_('restaurant_assets').remove([old_file])
+                except Exception:
+                    pass
+
+            get_supabase().storage.from_('restaurant_assets').upload(
+                new_filename,
+                file_bytes,
+                file_options={"content-type": safe_content_type(file_ext)}
+            )
+            public_url = get_supabase().storage.from_('restaurant_assets').get_public_url(new_filename)
+            product.image_url = public_url
+        except Exception as e:
                 logger.exception('Error subiendo imagen de producto')
                 flash('Error al subir la imagen. Intenta nuevamente.', 'danger')
             

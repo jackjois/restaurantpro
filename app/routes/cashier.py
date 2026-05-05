@@ -40,7 +40,7 @@ def pos():
 @login_required
 @role_required('admin')
 def open_session():
-    existing = CashSession.query.filter_by(status='open').first()
+    existing = CashSession.query.filter_by(status='open').with_for_update().first()
     if existing:
         flash('Ya existe una caja abierta.', 'warning')
         return redirect(url_for('cashier.pos'))
@@ -70,7 +70,7 @@ def open_session():
 @login_required
 @role_required('admin')
 def close_session():
-    current_session = CashSession.query.filter_by(status='open').first()
+    current_session = CashSession.query.filter_by(status='open').with_for_update().first()
     if not current_session:
         flash('No hay ninguna caja abierta para cerrar.', 'warning')
         return redirect(url_for('cashier.pos'))
@@ -161,6 +161,7 @@ def checkout(order_id):
         flash('No se puede cobrar una orden anulada.', 'danger')
         return redirect(url_for('cashier.pos'))
 
+    order.recalculate_total()
     bd = order.get_breakdown()
 
     payments_done = Payment.query.filter_by(order_id=order.id, status='completed').all()
@@ -211,6 +212,7 @@ def pay(order_id):
         flash('Tipo de comprobante no válido.', 'danger')
         return redirect(url_for('cashier.checkout', order_id=order_id))
 
+    order.recalculate_total()
     bd = order.get_breakdown()
 
     payments_done = Payment.query.filter_by(order_id=order.id, status='completed').all()
@@ -436,6 +438,7 @@ def process_split_pay(order_id):
         all_paid = all(item.is_paid or item.status == 'cancelled' for item in order.items)
 
         if all_paid:
+            order.recalculate_total()
             bd = order.get_breakdown()
             all_payments = Payment.query.filter_by(order_id=order.id, status='completed').all()
             total_paid = sum(float(p.amount) for p in all_payments)
@@ -453,11 +456,11 @@ def process_split_pay(order_id):
                     unreads = Notification.query.filter(Notification.is_read == False, Notification.message.like(f"%Mesa {table.number}%")).all()
                     for n in unreads: n.is_read = True
                     table.status = 'free'
-                msg_extra = "¡Todos los platos fueron pagados! Mesa liberada."
+                    msg_extra = "¡Todos los platos fueron pagados! Mesa liberada."
+                else:
+                    msg_extra = "Cobro parcial exitoso. Aún quedan platos por pagar."
             else:
                 msg_extra = "Cobro parcial exitoso. Aún quedan platos por pagar."
-        else:
-            msg_extra = "Cobro parcial exitoso. Aún quedan platos por pagar."
 
         AppSignal.emit('payment_completed', 'orders')
         db.session.commit()

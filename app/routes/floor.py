@@ -567,9 +567,8 @@ def api_cancel_order(order_id):
     try:
         # Devolver stock de los items que controlan stock
         for item in order.items:
-            if item.product and item.product.track_stock:
+            if item.product and item.product.track_stock and item.status != 'cancelled':
                 item.product.stock += item.quantity
-            # Mantener consistencia con el resto del sistema: anular items al anular la orden
             if item.status != 'cancelled':
                 item.status = 'cancelled'
 
