@@ -188,6 +188,10 @@ def pay(order_id):
     if order.status == 'paid':
         flash('Seguridad: Esta orden ya fue cobrada previamente.', 'warning')
         return redirect(url_for('cashier.pos'))
+
+    if not order.can_transition_to('paid'):
+        flash(f'La orden está en estado "{order.status}" y no puede ser cobrada aún. Debe estar "served".', 'danger')
+        return redirect(url_for('cashier.pos'))
     
     amount = safe_float(request.form.get('amount'), default=0.0)
     payment_method = request.form.get('payment_method')
@@ -449,8 +453,12 @@ def process_split_pay(order_id):
             if total_paid < full_grand_total:
                 all_paid = False
 
-        if all_paid:
-            order.status = 'paid'
+    if all_paid:
+        if not order.can_transition_to('paid'):
+            flash(f'La orden está en estado "{order.status}" y no puede ser marcada como pagada aún.', 'danger')
+            db.session.rollback()
+            return redirect(url_for('cashier.split_pay', order_id=order_id))
+        order.status = 'paid'
             table = Table.query.get(order.table_id)
             if table:
                 unreads = Notification.query.filter(Notification.is_read == False, Notification.message.like(f"%Mesa {table.number}%")).all()

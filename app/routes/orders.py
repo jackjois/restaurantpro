@@ -108,7 +108,7 @@ def submit_pos(table_id):
                 if product.track_stock:
                     product.stock -= qty
 
-        new_order.total_amount = total
+        new_order.recalculate_total()
         db.session.commit()
         AppSignal.emit('pos_order_created', 'orders')
 
@@ -183,10 +183,12 @@ def create_external():
             delivery_address=delivery_address if order_type == 'delivery' else None,
             delivery_fee=delivery_fee if order_type == 'delivery' else 0.00,
             status='pending',
-            total_amount=delivery_fee
+            total_amount=0
         )
-        
+
         db.session.add(new_order)
+        db.session.flush()
+        new_order.recalculate_total()
         db.session.commit()
         AppSignal.emit('external_order_created', 'orders')
         
@@ -230,6 +232,10 @@ def add_item(id):
     if order.status in ['paid', 'cancelled']:
         flash('Seguridad: No se pueden añadir platos a una orden cerrada o anulada.', 'danger')
         return redirect(url_for('orders.details', id=order.id))
+
+    if order.status not in ('pending', 'preparing', 'ready', 'served'):
+        flash(f'No se pueden añadir platos a una orden en estado "{order.status}".', 'danger')
+        return redirect(url_for('orders.details', id=order.id))
         
     product_id = safe_int(request.form.get('product_id'))
     quantity = safe_int(request.form.get('quantity'), default=1)
@@ -253,9 +259,9 @@ def add_item(id):
 
     subtotal = product.price * quantity
 
-    item = OrderItem(order_id=order.id, product_id=product.id, quantity=quantity, unit_price=product.price, subtotal=subtotal, notes=notes, status='pending')
-    order.total_amount = float(order.total_amount) + float(subtotal)
-    db.session.add(item)
+        item = OrderItem(order_id=order.id, product_id=product.id, quantity=quantity, unit_price=product.price, subtotal=subtotal, notes=notes, status='pending')
+        db.session.add(item)
+        order.recalculate_total()
     db.session.commit()
     AppSignal.emit('item_added', 'order_items')
     return redirect(url_for('orders.details', id=order.id))
@@ -270,22 +276,22 @@ def remove_item(item_id):
     if order.status in ['paid', 'cancelled']:
         flash('Seguridad: No se pueden eliminar platos de una orden cerrada o anulada.', 'danger')
         return redirect(url_for('orders.details', id=order.id))
+
+    if order.status not in ('pending', 'preparing', 'ready', 'served'):
+        flash(f'No se pueden eliminar platos de una orden en estado "{order.status}".', 'danger')
+        return redirect(url_for('orders.details', id=order.id))
         
     if item.status == 'delivered':
         flash('El plato ya fue entregado a la mesa. Debe anularse desde administración.', 'warning')
         return redirect(url_for('orders.details', id=order.id))
         
-    # Reintegro de inventario
-    if item.product and item.product.track_stock:
-        item.product.stock += item.quantity
-        
-    # Restar del total de la orden
-    order.total_amount = float(order.total_amount) - float(item.subtotal)
-    if order.total_amount < 0:
-        order.total_amount = 0
-    
-    product_name = item.product.name if item.product else '[Producto eliminado]'
-    db.session.delete(item)
+        # Reintegro de inventario
+        if item.product and item.product.track_stock:
+            item.product.stock += item.quantity
+
+        product_name = item.product.name if item.product else '[Producto eliminado]'
+        db.session.delete(item)
+        order.recalculate_total()
     
     AuditLog.log('REMOVE_ITEM', 'order_items', order.id, f"Se eliminó {item.quantity}x {product_name} de la orden {order.order_number}", current_user.id)
     
@@ -320,19 +326,25 @@ def update_item_status(item_id):
         flash('Estado no válido.', 'danger')
         return redirect(url_for('orders.kitchen'))
 
-    # No permitir reactivar ítems ya cancelados o entregados
-    if item.status == 'cancelled' and new_status != 'cancelled':
-        flash('No se puede reactivar un plato ya cancelado.', 'danger')
+    if new_status not in Order.VALID_ITEM_TRANSITIONS.get(item.status, []):
+        flash(f'No se puede cambiar de "{item.status}" a "{new_status}".', 'danger')
         return redirect(url_for('orders.kitchen'))
 
     old_status = item.status
     item.status = new_status
 
-    # Si se cancela un ítem: reintegrar stock y ajustar total
     if new_status == 'cancelled' and old_status != 'cancelled':
         if item.product and item.product.track_stock:
             item.product.stock += item.quantity
-        order.total_amount = max(0, float(order.total_amount) - float(item.subtotal))
+        order.recalculate_total()
+
+        table_num = order.table_rel.number if order.table_rel else 'N/A'
+        dish_name = item.product.name if item.product else 'Producto'
+        Notification.create(
+            type='system',
+            message=f"⚠ Plato cancelado: {dish_name} (Mesa {table_num})",
+            user_id=None
+        )
 
     db.session.commit()
     AppSignal.emit('kitchen_status_update', 'order_items')
@@ -355,8 +367,8 @@ def update_item_status(item_id):
 def cancel(id):
     order = Order.query.get_or_404(id)
 
-    if order.status in ['paid', 'cancelled']:
-        flash('No se puede anular una orden ya cerrada o pagada.', 'danger')
+    if not order.can_transition_to('cancelled'):
+        flash('No se puede anular esta orden en su estado actual.', 'danger')
         return redirect(url_for('orders.details', id=order.id))
 
     table = Table.query.get(order.table_id)

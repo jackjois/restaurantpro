@@ -326,9 +326,11 @@ def api_create_external_order():
             delivery_address=delivery_address,
             delivery_fee=delivery_fee,
             status='pending',
-            total_amount=delivery_fee  # Añadimos el delivery fee al total inicial
+            total_amount=0
         )
         db.session.add(new_order)
+        db.session.flush()
+        new_order.recalculate_total()
         db.session.commit()
         AppSignal.emit('floor_external_order_created', 'orders')
 
@@ -353,6 +355,8 @@ def api_add_item(order_id):
         return jsonify({'success': False, 'error': 'Orden no encontrada.'}), 404
     if order.status in ['paid', 'cancelled']:
         return jsonify({'success': False, 'error': 'Orden cerrada.'}), 400
+    if order.status not in ('pending', 'preparing', 'ready', 'served'):
+        return jsonify({'success': False, 'error': f'No se puede modificar una orden en estado "{order.status}".'}), 400
 
     data = request.get_json() or {}
     product_id = data.get('product_id')
@@ -385,8 +389,7 @@ def api_add_item(order_id):
         )
         db.session.add(item)
 
-        # Recalcular total
-        order.total_amount = float(order.total_amount or 0) + subtotal
+        order.recalculate_total()
         db.session.commit()
         AppSignal.emit('floor_item_added', 'order_items')
 
@@ -411,6 +414,8 @@ def api_remove_item(order_id, item_id):
         return jsonify({'success': False, 'error': 'Orden no encontrada.'}), 404
     if order.status in ['paid', 'cancelled']:
         return jsonify({'success': False, 'error': 'Orden cerrada.'}), 400
+    if order.status not in ('pending', 'preparing', 'ready', 'served'):
+        return jsonify({'success': False, 'error': f'No se puede modificar una orden en estado "{order.status}".'}), 400
 
     item = OrderItem.query.get(item_id)
     if not item or item.order_id != order.id:
@@ -423,8 +428,8 @@ def api_remove_item(order_id, item_id):
         if item.product and item.product.track_stock:
             item.product.stock += item.quantity
 
-        order.total_amount = max(0, float(order.total_amount or 0) - float(item.subtotal or 0))
         db.session.delete(item)
+        order.recalculate_total()
         
         # Check if it was the last item. If so, cancel the order and free the table
         if len(order.items) <= 1: # <=1 because the item is still in the collection until commit
@@ -497,8 +502,7 @@ def api_set_item_qty(order_id, item_id):
         item.quantity = new_qty
         item.subtotal = new_subtotal
 
-        # Ajustar total de la orden por diferencia
-        order.total_amount = max(0, float(order.total_amount or 0) + (new_subtotal - old_subtotal))
+        order.recalculate_total()
 
         db.session.commit()
         AppSignal.emit('floor_item_qty_updated', 'order_items')
@@ -529,11 +533,12 @@ def api_update_order(order_id):
         val = safe_float(data['discount_percent'], default=0.0)
         order.discount_percent = max(0, min(val, 100))
 
-    if 'tip' in data:
-        order.tip = max(0, safe_float(data['tip'], default=0.0))
+        if 'tip' in data:
+            order.tip = max(0, safe_float(data['tip'], default=0.0))
 
-    try:
-        db.session.commit()
+        try:
+            order.recalculate_total()
+            db.session.commit()
         return jsonify({'success': True, 'order': _serialize_order(order)})
     except Exception as e:
         db.session.rollback()
@@ -552,8 +557,8 @@ def api_cancel_order(order_id):
     order = db.session.get(Order, order_id, with_for_update=True)
     if not order:
         return jsonify({'success': False, 'error': 'Orden no encontrada.'}), 404
-    if order.status in ['paid', 'cancelled']:
-        return jsonify({'success': False, 'error': 'La orden ya está cerrada o cancelada.'}), 400
+    if not order.can_transition_to('cancelled'):
+        return jsonify({'success': False, 'error': 'La orden no se puede anular en su estado actual.'}), 400
 
     try:
         # Devolver stock de los items que controlan stock
@@ -805,8 +810,8 @@ def api_split_order(order_id):
             db.session.rollback()
             return jsonify({'success': False, 'error': 'No se procesó ningún item válido.'}), 400
             
-        new_order.total_amount = new_total
-        original_order.total_amount = max(0, float(original_order.total_amount or 0) - original_total_reduction)
+        new_order.recalculate_total()
+        original_order.recalculate_total()
         
         if remaining_items_count == 0:
             original_order.status = 'cancelled'

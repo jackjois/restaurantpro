@@ -25,6 +25,32 @@ class Order(db.Model):
     
     items = db.relationship('OrderItem', backref='order_rel', cascade='all, delete-orphan', lazy=True)
 
+    VALID_TRANSITIONS = {
+        'pending': ['preparing', 'cancelled'],
+        'preparing': ['ready', 'cancelled'],
+        'ready': ['served', 'cancelled'],
+        'served': ['paid', 'cancelled'],
+        'paid': [],
+        'cancelled': [],
+    }
+
+    VALID_ITEM_TRANSITIONS = {
+        'pending': ['preparing', 'cancelled'],
+        'preparing': ['ready', 'cancelled'],
+        'ready': ['delivered', 'cancelled'],
+        'delivered': [],
+        'cancelled': [],
+    }
+
+    def recalculate_total(self):
+        items_sub = sum(float(i.subtotal) for i in self.items if i.status != 'cancelled')
+        disc = round(items_sub * float(self.discount_percent or 0) / 100, 2)
+        self.total_amount = round(items_sub - disc + float(self.tip or 0) + float(self.delivery_fee or 0), 2)
+        return self.total_amount
+
+    def can_transition_to(self, new_status):
+        return new_status in self.VALID_TRANSITIONS.get(self.status, [])
+
     @staticmethod
     def generate_order_number():
         """Genera un número de pedido único basado en secuencia de BD."""

@@ -164,7 +164,7 @@ def place_order(qr_code):
     if items_added == 0:
         return jsonify({'error': 'No se pudo agregar ningún producto válido'}), 400
 
-    active_order.total_amount = float(active_order.total_amount) + total_added
+        active_order.recalculate_total()
 
     # Notificamos al sistema interno
     Notification.create(
