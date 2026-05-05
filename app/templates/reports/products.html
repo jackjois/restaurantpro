@@ -124,7 +124,7 @@
 
 {% block scripts %}
 {% if products %}
-<script>
+<script nonce="{{ csp_nonce }}">
 document.addEventListener('DOMContentLoaded', function() {
     const productsDataEl = document.getElementById('top-products-data');
     const categoryDataEl = document.getElementById('category-revenue-data');

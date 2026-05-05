@@ -60,8 +60,13 @@ def edit(id):
         category.name = new_name
         category.description = request.form.get('description', '')
         category.color = request.form.get('color', category.color)
-        db.session.commit()
-        flash('Categoría actualizada correctamente.', 'success')
+        try:
+            db.session.commit()
+            flash('Categoría actualizada correctamente.', 'success')
+        except Exception:
+            db.session.rollback()
+            logger.exception("Error al actualizar la categoría %s", id)
+            flash('Error al actualizar la categoría. Intenta nuevamente.', 'danger')
         
     return redirect(url_for('categories.index'))
 

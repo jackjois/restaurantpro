@@ -235,8 +235,8 @@
 </div>
 
 <!-- Lógica de Temporizador Visual Reactivo para Cocina -->
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
+<script nonce="{{ csp_nonce }}">
+document.addEventListener("DOMContentLoaded", function () {
         function updateTimers() {
             const now = new Date();
             const timers = document.querySelectorAll('.timer-badge');

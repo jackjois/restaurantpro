@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 users_bp = Blueprint('users', __name__, url_prefix='/users')
 
 # Roles válidos del sistema — prevenir escalada de privilegios
-ALLOWED_ROLES = ('admin', 'cashier', 'waiter', 'chef')
+ALLOWED_ROLES = ('admin', 'manager', 'cashier', 'waiter', 'chef', 'kitchen')
 
 @users_bp.route('/')
 @login_required
@@ -54,9 +54,15 @@ def create():
         role=role
     )
     
-    db.session.add(new_user)
-    db.session.commit()
-    flash(f'El usuario {username} ha sido creado exitosamente.', 'success')
+    try:
+        db.session.add(new_user)
+        db.session.commit()
+        flash(f'El usuario {username} ha sido creado exitosamente.', 'success')
+    except Exception:
+        db.session.rollback()
+        logger.exception("Error al crear el usuario")
+        flash('Error al crear el usuario. Intenta nuevamente.', 'danger')
+
     return redirect(url_for('users.index'))
 
 @users_bp.route('/edit/<int:id>', methods=['POST'])
@@ -106,9 +112,15 @@ def edit(id):
             flash('La nueva contraseña debe tener al menos 8 caracteres.', 'danger')
             return redirect(url_for('users.index'))
         user.password_hash = bcrypt.generate_password_hash(new_password).decode('utf-8')
-        
-    db.session.commit()
-    flash(f'Los datos del usuario {user.username} fueron actualizados.', 'success')
+
+    try:
+        db.session.commit()
+        flash(f'Los datos del usuario {user.username} fueron actualizados.', 'success')
+    except Exception:
+        db.session.rollback()
+        logger.exception("Error al actualizar el usuario %s", id)
+        flash('Error al actualizar el usuario. Intenta nuevamente.', 'danger')
+
     return redirect(url_for('users.index'))
 
 @users_bp.route('/delete/<int:id>', methods=['POST'])

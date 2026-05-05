@@ -335,8 +335,8 @@
         </div>
     </div>
 
-    <script>
-        // CSRF Token: inyectar automáticamente en todos los formularios POST
+<script nonce="{{ csp_nonce }}">
+// CSRF Token: inyectar automáticamente en todos los formularios POST
         document.addEventListener('DOMContentLoaded', function () {
             const csrfToken = "{{ csrf_token() }}";
             document.querySelectorAll('form[method="POST"], form[method="post"]').forEach(function (form) {
@@ -356,9 +356,9 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const Toast = Swal.mixin({
+<script nonce="{{ csp_nonce }}">
+document.addEventListener('DOMContentLoaded', function () {
+const Toast = Swal.mixin({
                 toast: true, position: 'top-end', showConfirmButton: false, timer: 4500, timerProgressBar: true,
                 didOpen: (toast) => {
                     toast.addEventListener('mouseenter', Swal.stopTimer)
@@ -466,8 +466,8 @@
         });
     </script>
 
-    <script>
-        // SIDEBAR ACTIVO DINÁMICO: Marca automáticamente el enlace de la sección actual
+<script nonce="{{ csp_nonce }}">
+// SIDEBAR ACTIVO DINÁMICO: Marca automáticamente el enlace de la sección actual
         document.addEventListener('DOMContentLoaded', function () {
             const path = window.location.pathname;
             // Quitar active hardcodeado

@@ -140,8 +140,8 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
-    let orderItems = [];
+<script nonce="{{ csp_nonce }}">
+let orderItems = [];
     let total = 0;
 
     function escapeHtml(value) {

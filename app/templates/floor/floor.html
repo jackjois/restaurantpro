@@ -386,9 +386,9 @@
     <!-- Supabase Realtime -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-    <script>
-        (function () {
-            'use strict';
+<script nonce="{{ csp_nonce }}">
+(function () {
+'use strict';
 
             // ── Config ──
             const CSRF = "{{ csrf_token() }}";

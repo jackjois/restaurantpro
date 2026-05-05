@@ -91,9 +91,8 @@ def create():
         
         flash('Producto agregado correctamente.', 'success')
         return redirect(url_for('products.index'))
-        
-    categories = Category.query.all()
-    return render_template('products/create.html', categories=categories)
+
+    return redirect(url_for('products.index'))
 
 @products_bp.route('/edit/<int:id>', methods=['GET', 'POST'])
 @login_required
@@ -152,9 +151,8 @@ def edit(id):
             logger.exception('Error actualizando producto %s', id)
             flash('Error al actualizar el producto. Intenta nuevamente.', 'danger')
         return redirect(url_for('products.index'))
-        
-    categories = Category.query.all()
-    return render_template('products/edit.html', product=product, categories=categories)
+
+    return redirect(url_for('products.index'))
 
 @products_bp.route('/delete/<int:id>', methods=['POST'])
 @login_required

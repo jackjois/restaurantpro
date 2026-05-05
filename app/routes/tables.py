@@ -50,11 +50,16 @@ def create():
     token = uuid.uuid4().hex[:10]
     
     new_table = Table(number=number, capacity=capacity, location=location, qr_code=token)
-    db.session.add(new_table)
-    db.session.commit()
-    
-    # (Supabase Realtime)
-    flash('Mesa creada correctamente.', 'success')
+    try:
+        db.session.add(new_table)
+        db.session.commit()
+        # (Supabase Realtime)
+        flash('Mesa creada correctamente.', 'success')
+    except Exception:
+        db.session.rollback()
+        logger.exception("Error al crear la mesa")
+        flash('Error al crear la mesa. Intenta nuevamente.', 'danger')
+
     return redirect(url_for('tables.index'))
 
 @tables_bp.route('/edit/<int:id>', methods=['POST'])
@@ -83,12 +88,17 @@ def edit(id):
         # Si la mesa no tiene token (porque es antigua), le generamos uno
         if not table.qr_code:
             table.qr_code = uuid.uuid4().hex[:10]
-            
-        db.session.commit()
-        # (Supabase Realtime)
-        flash('Mesa actualizada correctamente.', 'success')
-        
-    return redirect(url_for('tables.index'))
+
+        try:
+            db.session.commit()
+            # (Supabase Realtime)
+            flash('Mesa actualizada correctamente.', 'success')
+        except Exception:
+            db.session.rollback()
+            logger.exception("Error al actualizar la mesa %s", id)
+            flash('Error al actualizar la mesa. Intenta nuevamente.', 'danger')
+
+        return redirect(url_for('tables.index'))
 
 @tables_bp.route('/delete/<int:id>', methods=['POST'])
 @login_required
@@ -109,6 +119,8 @@ def delete(id):
 
 # Ruta de atajo para abrir la Carta de una Mesa y probarla (pública)
 @tables_bp.route('/qr/<int:id>')
+@login_required
+@role_required('admin', 'waiter')
 def view_qr_link(id):
     table = Table.query.get_or_404(id)
     if not table.qr_code:

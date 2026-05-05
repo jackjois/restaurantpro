@@ -258,7 +258,7 @@
                 <p class="text-muted small mb-4 mb-md-0">
                     El sistema registrará el <strong>efectivo esperado en caja</strong> según los cobros en efectivo y los egresos registrados. En el Ticket Z verás el detalle (apertura, efectivo, egresos y fórmula) para <strong>cuadrar el físico</strong> con papel y calculadora si lo necesitas, sin volver a ingresar montos aquí.
                 </p>
-                <form action="{{ url_for('cashier.close_session_auto') }}" method="POST" class="mt-4">
+                <form action="{{ url_for('cashier.close_session') }}" method="POST" class="mt-4">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <button type="submit" class="btn btn-danger fw-bold w-100 py-3 shadow-sm" style="border-radius: 12px;">
                         <i class="bi bi-lock-fill me-1"></i> Cerrar caja definitivamente
@@ -299,9 +299,9 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const params = new URLSearchParams(window.location.search);
+<script nonce="{{ csp_nonce }}">
+document.addEventListener('DOMContentLoaded', function() {
+    const params = new URLSearchParams(window.location.search);
         
         // Popup de Ticket de Venta (boleta/factura) — después de cobrar
         const popupTicket = params.get('popup_ticket');

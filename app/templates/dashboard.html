@@ -358,8 +358,8 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
+<script nonce="{{ csp_nonce }}">
+document.addEventListener("DOMContentLoaded", function () {
         const dataEl = document.getElementById('chart-data');
         const chartLabels = JSON.parse(dataEl.dataset.labels);
         const chartData = JSON.parse(dataEl.dataset.values);

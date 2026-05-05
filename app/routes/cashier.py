@@ -54,11 +54,16 @@ def open_session():
     )
     db.session.add(new_session)
     db.session.flush()
-    
+
     AuditLog.log('OPEN_SESSION', 'cash_sessions', new_session.id, f"Caja abierta con monto inicial de S/ {opening_amount}", current_user.id)
-    db.session.commit()
-    
-    flash('Caja abierta exitosamente.', 'success')
+    try:
+        db.session.commit()
+        flash('Caja abierta exitosamente.', 'success')
+    except Exception:
+        db.session.rollback()
+        logger.exception("Error al abrir caja")
+        flash('Error al abrir la caja. Intenta nuevamente.', 'danger')
+
     return redirect(url_for('cashier.pos'))
 
 @cashier_bp.route('/close_session', methods=['POST'])
@@ -255,7 +260,7 @@ def pay(order_id):
         invoice = Invoice(
             payment_id=payment.id, invoice_type=invoice_type, document_number=doc_number,
             customer_name=customer_name, customer_document=customer_document,
-            subtotal=total, tax_amount=0, total_amount=total
+            subtotal=total, total_amount=total
         )
         db.session.add(invoice)
         
@@ -417,7 +422,7 @@ def process_split_pay(order_id):
         invoice = Invoice(
             payment_id=payment.id, invoice_type=invoice_type, document_number=doc_number,
             customer_name=customer_name, customer_document=customer_document,
-            subtotal=amount, tax_amount=0, total_amount=amount
+            subtotal=amount, total_amount=amount
         )
         db.session.add(invoice)
 

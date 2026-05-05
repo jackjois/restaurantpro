@@ -289,7 +289,7 @@
 
 {% block scripts %}
 {% if total_orders > 0 %}
-<script>
+<script nonce="{{ csp_nonce }}">
 document.addEventListener('DOMContentLoaded', function() {
     const lineDataEl = document.getElementById('sales-line-data');
     const doughnutDataEl = document.getElementById('payment-doughnut-data');

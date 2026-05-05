@@ -13,5 +13,6 @@ class CashSession(db.Model):
     closing_amount = db.Column(db.Numeric(10, 2), nullable=True)
     expected_amount = db.Column(db.Numeric(10, 2), nullable=True)
     status = db.Column(db.String(50), default='open')
-    
+    created_at = db.Column(db.DateTime(timezone=True), default=_now_utc)
+
     user = db.relationship('User', backref='cash_sessions', lazy=True)

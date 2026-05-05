@@ -170,9 +170,9 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const checkboxes = document.querySelectorAll('.split-item-checkbox');
+<script nonce="{{ csp_nonce }}">
+document.addEventListener('DOMContentLoaded', function() {
+    const checkboxes = document.querySelectorAll('.split-item-checkbox');
         const totalEl = document.getElementById('selectedTotal');
         const btnSubmit = document.getElementById('btnSubmitSplit');
         

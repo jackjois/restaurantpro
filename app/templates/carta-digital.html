@@ -144,8 +144,8 @@
     <!-- Datos de menú serializados de forma segura -->
     <script id="menu-data" type="application/json">{{ menu_items | tojson }}</script>
 
-    <script>
-        // DATOS DE PLATOS DESDE FLASK (serializados de forma segura)
+<script nonce="{{ csp_nonce }}">
+    // DATOS DE PLATOS DESDE FLASK (serializados de forma segura)
         const menuItems = JSON.parse(document.getElementById('menu-data').textContent);
 
         let carrito = [];

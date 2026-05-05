@@ -1,6 +1,7 @@
 import os
+import secrets
 from datetime import timezone
-from flask import Flask, send_from_directory, url_for, render_template, request
+from flask import Flask, send_from_directory, url_for, render_template, request, g
 import logging
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
@@ -101,6 +102,14 @@ def create_app(config_class=Config):
         except Exception as e:
             return dict(restaurant=None)
 
+    @app.before_request
+    def set_csp_nonce():
+        g.csp_nonce = secrets.token_urlsafe(16)
+
+    @app.context_processor
+    def inject_csp_nonce():
+        return dict(csp_nonce=getattr(g, 'csp_nonce', ''))
+
     @app.route('/manifest.json')
     def manifest():
         return send_from_directory(os.path.join(app.root_path, 'static'), 'manifest.json')
@@ -167,9 +176,18 @@ def create_app(config_class=Config):
         img_src = "'self' data: https://*.supabase.co"
         if supabase_host:
             img_src += f" https://{supabase_host}"
+        nonce = getattr(g, 'csp_nonce', '')
+        script_src = f"'self' 'nonce-{nonce}' cdn.jsdelivr.net cdn.tailwindcss.com"
+        script_src_elem = f"'self' 'nonce-{nonce}' cdn.jsdelivr.net cdn.tailwindcss.com"
+        script_src_attr = "'unsafe-inline'"
+        if not bool(os.environ.get("VERCEL")):
+            script_src += " 'unsafe-inline'"
+            script_src_elem += " 'unsafe-inline'"
         response.headers['Content-Security-Policy'] = (
             f"default-src 'self'; "
-            f"script-src 'self' 'unsafe-inline' cdn.jsdelivr.net; "
+            f"script-src {script_src}; "
+            f"script-src-elem {script_src_elem}; "
+            f"script-src-attr {script_src_attr}; "
             f"style-src 'self' 'unsafe-inline' cdn.jsdelivr.net; "
             f"img-src {img_src}; "
             f"font-src 'self' cdn.jsdelivr.net; "

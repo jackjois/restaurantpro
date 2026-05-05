@@ -315,8 +315,11 @@ def kitchen():
 @login_required
 @role_required('admin', 'chef')
 def update_item_status(item_id):
-    item = OrderItem.query.get_or_404(item_id)
-    order = Order.query.get(item.order_id)
+    item = db.session.get(OrderItem, item_id, with_for_update=True)
+    if not item:
+        flash('Ítem no encontrado.', 'danger')
+        return redirect(url_for('orders.kitchen'))
+    order = db.session.get(Order, item.order_id, with_for_update=True)
 
     if order.status in ['paid', 'cancelled']:
         flash('Seguridad: No se puede modificar el estado de un plato en una orden cerrada o anulada.', 'danger')
@@ -359,17 +362,7 @@ def update_item_status(item_id):
         mensaje = f"¡El plato {dish_name} de la Mesa {table_num} está listo!"
         Notification.create(type='system', message=mensaje, user_id=None)
         db.session.commit()
-    AppSignal.emit('kitchen_status_update', 'order_items')
-    
-    if new_status == 'ready':
-        parent_order = Order.query.get(item.order_id)
-        table_num = parent_order.table_rel.number if parent_order and parent_order.table_rel else 'N/A'
-        dish_name = item.product.name
-        
-        # Guardamos con user_id=None para que sea GLOBAL
-        mensaje = f"¡El plato {dish_name} de la Mesa {table_num} está listo!"
-        Notification.create(type='system', message=mensaje, user_id=None)
-        db.session.commit()
+        AppSignal.emit('kitchen_status_update', 'order_items')
 
     return redirect(url_for('orders.kitchen'))
 

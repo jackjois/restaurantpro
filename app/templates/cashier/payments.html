@@ -187,7 +187,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce }}">
     // Pequeño script para cambiar "DNI" a "RUC" si elige Factura
     document.querySelectorAll('input[name="invoice_type"]').forEach((elem) => {
         elem.addEventListener("change", function(event) {

@@ -232,8 +232,8 @@
     </div>
 </div>
 
-<script>
-    let carrito = [];
+<script nonce="{{ csp_nonce }}">
+let carrito = [];
 
     function escapeHtml(value) {
         const str = String(value ?? '');

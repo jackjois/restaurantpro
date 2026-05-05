@@ -1,0 +1,17 @@
+.env
+.env.*
+.venv
+venv
+__pycache__/
+*.pyc
+*.pyo
+*.db
+*.sqlite
+instance/
+*.log
+node_modules/
+.vscode/
+.idea/
+*.sql.bak
+*.sql.gz
+xampp/

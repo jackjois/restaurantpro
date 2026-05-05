@@ -610,10 +610,14 @@ def api_table_status(table_id):
         return jsonify({'success': False, 'error': 'Estado no válido.'}), 400
 
     table.status = new_status
-    db.session.commit()
-    AppSignal.emit('floor_table_status', 'tables')
-
-    return jsonify({'success': True, 'status': new_status})
+    try:
+        db.session.commit()
+        AppSignal.emit('floor_table_status', 'tables')
+        return jsonify({'success': True, 'status': new_status})
+    except Exception:
+        db.session.rollback()
+        logger.exception("Error al cambiar status de mesa %s", table_id)
+        return jsonify({'success': False, 'error': 'Error interno.'}), 500
 
 
 # ───────────────────────────────────────────────
@@ -642,10 +646,13 @@ def api_send_kot(order_id):
             user_id=None
         )
         AppSignal.emit('floor_kot_sent', 'order_items')
-        db.session.commit()
-
-    # No cambiamos estados; cocina decide cuándo pasa a 'preparing'
-    return jsonify({'success': True, 'sent_count': sent_count, 'order': _serialize_order(order)})
+        try:
+            db.session.commit()
+            return jsonify({'success': True, 'sent_count': sent_count, 'order': _serialize_order(order)})
+        except Exception:
+            db.session.rollback()
+            logger.exception("Error al enviar KOT para orden %s", order_id)
+            return jsonify({'success': False, 'error': 'Error interno.'}), 500
 
 
 # ───────────────────────────────────────────────
