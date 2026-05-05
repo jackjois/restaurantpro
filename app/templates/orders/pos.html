@@ -212,7 +212,7 @@
         
         <!-- Botón rápido para Tapers -->
         <div class="px-4 py-2 border-top bg-white d-flex justify-content-center">
-            <button class="btn btn-outline-primary btn-sm fw-bold rounded-pill w-100" onclick="agregarAlCarrito({{ taper.id }}, '{{ taper.name }}', {{ taper.price }})">
+            <button class="btn btn-outline-primary btn-sm fw-bold rounded-pill w-100" data-id="{{ taper.id }}" data-name="{{ taper.name }}" data-price="{{ taper.price }}" onclick="agregarAlCarrito(+this.dataset.id, this.dataset.name, +this.dataset.price)">
                 <i class="bi bi-box-seam me-1"></i> + Añadir Taper (S/ {{ "%.2f"|format(taper.price) }})
             </button>
         </div>

@@ -136,7 +136,7 @@
                         </div>
                         <div class="modal-footer border-0 pt-0 justify-content-center pb-4">
                             {% if t.qr_code %}
-                            <button type="button" class="btn btn-dark px-4 py-2 w-100 fw-bold" style="border-radius: 14px;" onclick="imprimirQR('{{ t.number }}', 'qr-img-{{ t.id }}')">
+                            <button type="button" class="btn btn-dark px-4 py-2 w-100 fw-bold" style="border-radius: 14px;" data-number="{{ t.number }}" data-img="qr-img-{{ t.id }}" onclick="imprimirQR(this.dataset.number, this.dataset.img)">
                                 <i class="bi bi-printer-fill me-2"></i> Imprimir Display
                             </button>
                             {% endif %}

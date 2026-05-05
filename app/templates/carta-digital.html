@@ -331,11 +331,11 @@
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> ENVIANDO...';
             btn.disabled = true;
 
-            fetch("{{ url_for('menu.place_order', qr_code=table.qr_code) }}", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ cart: carrito })
-            })
+    fetch("{{ url_for('menu.place_order', qr_code=table.qr_code) }}", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cart: carrito, _token: "{{ order_token }}", _ts: {{ order_ts }} })
+    })
             .then(res => res.json())
             .then(data => {
                 if(data.success) {

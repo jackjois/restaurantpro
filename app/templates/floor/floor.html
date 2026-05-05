@@ -521,7 +521,7 @@
                 const items = state.kpis.low_stock_items || [];
                 if (items.length === 0) { $ticker.style.display = 'none'; return; }
                 $ticker.style.display = 'block';
-                const html = items.map(i => `<span class="stock-ticker-item"><span class="dot"></span>${i.name} · ${i.stock} restantes</span>`).join('');
+                const html = items.map(i => `<span class="stock-ticker-item"><span class="dot"></span>${escapeHtml(i.name)} · ${i.stock} restantes</span>`).join('');
                 $tickerContent.innerHTML = html + html; // duplicate for seamless scroll
             }
 
@@ -535,7 +535,7 @@
                     const badgeText = st === 'free' ? 'Libre' : st === 'occupied' ? 'Ocupada' : st === 'reserved' ? 'Reservada' : 'Mtto';
                     html += `<div class="table-tile st-${st}${sel}" data-id="${t.id}" data-status="${st}">
                 <div class="t-label">Mesa</div>
-                <div class="t-num">${t.number}</div>
+                <div class="t-num">${escapeHtml(t.number)}</div>
                 <div class="t-seats"><i class="bi bi-people-fill"></i> ${t.capacity}</div>
                 <span class="t-badge">${badgeText}</span>
                 ${amt}
@@ -569,7 +569,7 @@
                     const badgeText = o.order_type === 'delivery' ? 'Delivery' : 'Para Llevar';
                     const icon = o.order_type === 'delivery' ? 'bi-motorcycle' : 'bi-bag';
                     html += `<div class="table-tile st-occupied${sel}" data-oid="${o.id}">
-                <div class="t-label">${o.order_number}</div>
+                <div class="t-label">${escapeHtml(o.order_number)}</div>
                 <div class="t-num" style="font-size: 1.2rem; margin: 4px 0;"><i class="bi ${icon}"></i></div>
                 <div class="t-seats" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;"><i class="bi bi-person"></i> ${escapeHtml(o.customer_name)}</div>
                 <span class="t-badge" style="background:var(--f-accent);">${badgeText}</span>
@@ -744,7 +744,7 @@
                     const badge = outOfStock ? '<div class="stock-badge">Agotado</div>' : lowStock ? `<div class="stock-badge" style="background:rgba(245,158,11,0.85);">Stock: ${p.stock}</div>` : '';
                     const safeName = escapeHtml(p.name);
                     const safeDesc = escapeHtml(p.description || '');
-                    const img = p.image_url ? `<img src="${p.image_url}" alt="${safeName}" loading="lazy">` : `<div class="no-img">🍽️</div>`;
+                    const img = p.image_url ? `<img src="${encodeURI(p.image_url)}" alt="${safeName}" loading="lazy">` : `<div class="no-img">🍽️</div>`;
                     const disabledClass = outOfStock ? 'style="opacity:0.4;pointer-events:none;"' : '';
                     html += `<div class="menu-card" data-pid="${p.id}" ${disabledClass}>
                 ${badge}${img}

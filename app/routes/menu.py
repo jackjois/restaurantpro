@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, jsonify, url_for
+from flask import Blueprint, render_template, request, jsonify, url_for, current_app
 from app.models.table import Table
 from app.models.product import Product
 from app.models.category import Category
@@ -7,6 +7,8 @@ from app.models.notification import Notification
 from app.models.app_signal import AppSignal
 from app import db, csrf
 from datetime import datetime, timezone, timedelta
+import hmac
+import hashlib
 
 menu_bp = Blueprint('menu', __name__, url_prefix='/menu')
 
@@ -37,19 +39,42 @@ def view_menu(qr_code):
             )
         })
 
+    # Generar token HMAC para protección anti-CSRF stateless
+    secret = current_app.config['SECRET_KEY']
+    ts = int(datetime.now(timezone.utc).timestamp())
+    msg = f"{qr_code}:{ts}"
+    token = hmac.new(secret.encode(), msg.encode(), hashlib.sha256).hexdigest()
+
     return render_template(
         'carta-digital.html',
         table=table,
         categories=categories,
         products=products,
-        menu_items=menu_items
+        menu_items=menu_items,
+        order_token=token,
+        order_ts=ts
     )
 
 # 2. RUTA PARA RECIBIR EL PEDIDO DESDE EL CELULAR DEL CLIENTE
-@csrf.exempt  # API JSON pública, no usa sesiones de Flask
+@csrf.exempt
 @menu_bp.route('/<qr_code>/order', methods=['POST'])
 def place_order(qr_code):
     table = Table.query.filter_by(qr_code=qr_code).first_or_404()
+
+    # Validar token HMAC stateless (protección anti-CSRF sin sesión)
+    data = request.json
+    if not data or not isinstance(data, dict):
+        return jsonify({'error': 'Datos inválidos'}), 400
+
+    client_token = data.get('_token', '')
+    client_ts = data.get('_ts', 0)
+    secret = current_app.config['SECRET_KEY']
+    expected_msg = f"{qr_code}:{client_ts}"
+    expected_token = hmac.new(secret.encode(), expected_msg.encode(), hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(client_token, expected_token):
+        return jsonify({'error': 'Token de seguridad inválido. Recarga la página.'}), 403
+    if abs(int(datetime.now(timezone.utc).timestamp()) - int(client_ts)) > 1800:
+        return jsonify({'error': 'Token expirado. Recarga la página.'}), 403
     
     # RATE LIMITING CON BASE DE DATOS (SERVERLESS SAFE)
     one_min_ago = get_now_utc() - timedelta(minutes=1)
@@ -71,11 +96,6 @@ def place_order(qr_code):
     if global_orders_count >= 30:
         return jsonify({'error': 'El sistema está recibiendo muchos pedidos en este momento.'}), 429
     
-    data = request.json
-    
-    if not data or not isinstance(data, dict):
-        return jsonify({'error': 'Datos inválidos'}), 400
-        
     cart = data.get('cart', [])
 
     if not cart or not isinstance(cart, list):

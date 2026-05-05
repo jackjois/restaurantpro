@@ -265,7 +265,7 @@ def add_item(id):
 @role_required('admin', 'cashier', 'waiter')
 def remove_item(item_id):
     item = OrderItem.query.get_or_404(item_id)
-    order = Order.query.get(item.order_id)
+    order = db.session.get(Order, item.order_id, with_for_update=True)
     
     if order.status in ['paid', 'cancelled']:
         flash('Seguridad: No se pueden eliminar platos de una orden cerrada o anulada.', 'danger')
@@ -308,12 +308,32 @@ def kitchen():
 @role_required('admin', 'chef')
 def update_item_status(item_id):
     item = OrderItem.query.get_or_404(item_id)
+    order = Order.query.get(item.order_id)
+
+    if order.status in ['paid', 'cancelled']:
+        flash('Seguridad: No se puede modificar el estado de un plato en una orden cerrada o anulada.', 'danger')
+        return redirect(url_for('orders.details', id=order.id))
+
     new_status = request.form.get('status')
     allowed_statuses = ('pending', 'preparing', 'ready', 'delivered', 'cancelled')
     if new_status not in allowed_statuses:
         flash('Estado no válido.', 'danger')
         return redirect(url_for('orders.kitchen'))
+
+    # No permitir reactivar ítems ya cancelados o entregados
+    if item.status == 'cancelled' and new_status != 'cancelled':
+        flash('No se puede reactivar un plato ya cancelado.', 'danger')
+        return redirect(url_for('orders.kitchen'))
+
+    old_status = item.status
     item.status = new_status
+
+    # Si se cancela un ítem: reintegrar stock y ajustar total
+    if new_status == 'cancelled' and old_status != 'cancelled':
+        if item.product and item.product.track_stock:
+            item.product.stock += item.quantity
+        order.total_amount = max(0, float(order.total_amount) - float(item.subtotal))
+
     db.session.commit()
     AppSignal.emit('kitchen_status_update', 'order_items')
     
@@ -334,6 +354,11 @@ def update_item_status(item_id):
 @role_required('admin', 'cashier')
 def cancel(id):
     order = Order.query.get_or_404(id)
+
+    if order.status in ['paid', 'cancelled']:
+        flash('No se puede anular una orden ya cerrada o pagada.', 'danger')
+        return redirect(url_for('orders.details', id=order.id))
+
     table = Table.query.get(order.table_id)
     cancel_reason = request.form.get('cancel_reason', 'Motivo no especificado')
     
@@ -355,10 +380,11 @@ def cancel(id):
         flash('Pedido cancelado por error de apertura.', 'success')
     else:
         order.status = 'cancelled'
-        for item in order.items: 
-            item.status = 'cancelled'
-            if item.product and item.product.track_stock:
-                item.product.stock += item.quantity
+        for item in order.items:
+            if item.status != 'cancelled':
+                item.status = 'cancelled'
+                if item.product and item.product.track_stock:
+                    item.product.stock += item.quantity
         if table: table.status = 'free'
         
         AuditLog.log('CANCEL_ORDER', 'orders', order.id, f"Pedido {order.order_number} anulado. Monto: {order.total_amount}. Motivo: {cancel_reason}", current_user.id)

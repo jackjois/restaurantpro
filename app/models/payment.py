@@ -29,7 +29,6 @@ class Invoice(db.Model):
     customer_document = db.Column(db.String(50))
     customer_address = db.Column(db.Text)
     subtotal = db.Column(db.Numeric(10, 2))
-    tax_amount = db.Column(db.Numeric(10, 2))
     total_amount = db.Column(db.Numeric(10, 2))
     pdf_path = db.Column(db.String(255))
     created_at = db.Column(db.DateTime(timezone=True), default=_now_utc)

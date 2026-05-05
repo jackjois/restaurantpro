@@ -69,37 +69,14 @@ def close_session():
     if not current_session:
         flash('No hay ninguna caja abierta para cerrar.', 'warning')
         return redirect(url_for('cashier.pos'))
-        
-    payments = Payment.query.filter_by(cash_session_id=current_session.id, status='completed').all()
-    expenses = CashExpense.query.filter_by(cash_session_id=current_session.id).all()
-    
-    total_sales = sum(float(p.amount) for p in payments)
-    cash_sales = sum(float(p.amount) for p in payments if p.payment_method == 'cash')
-    total_expenses = sum(float(e.amount) for e in expenses)
-    expected_amount = float(current_session.opening_amount) + cash_sales - total_expenses
-    
-    closing_amount = safe_float(request.form.get('closing_amount'), default=expected_amount)
-    
-    current_session.closing_time = datetime.now(timezone.utc)
-    current_session.closing_amount = closing_amount
-    current_session.expected_amount = expected_amount
-    current_session.status = 'closed'
-    
-    AuditLog.log('CLOSE_SESSION', 'cash_sessions', current_session.id, f"Caja cerrada. Monto Esperado: S/ {expected_amount}, Ingresado: S/ {closing_amount}", current_user.id)
-    db.session.commit()
-    
-    flash(f'Caja cerrada. Ventas puras: S/ {total_sales} | Egresos: S/ {total_expenses}. Tu Ticket Z se abrirá en instantes.', 'success')
-    return redirect(url_for('cashier.pos', popup_shift=current_session.id))
 
-
-@cashier_bp.route('/close_session_auto', methods=['POST'])
-@login_required
-@role_required('admin')
-def close_session_auto():
-    """Cierre automático (sin arqueo): usa el monto esperado como cierre."""
-    current_session = CashSession.query.filter_by(status='open').first()
-    if not current_session:
-        flash('No hay ninguna caja abierta para cerrar.', 'warning')
+    # Verificar si hay órdenes abiertas (sin pagar) antes de cerrar
+    open_orders = Order.query.filter(
+        Order.status.in_(['pending', 'preparing', 'ready', 'served']),
+        Order.created_at >= current_session.opening_time
+    ).count()
+    if open_orders > 0:
+        flash(f'No se puede cerrar la caja: hay {open_orders} pedido(s) sin cobrar. Cobralos o anúlalos primero.', 'danger')
         return redirect(url_for('cashier.pos'))
 
     payments = Payment.query.filter_by(cash_session_id=current_session.id, status='completed').all()
@@ -248,10 +225,15 @@ def pay(order_id):
     if amount < remaining_amount:
         flash(f'El monto (S/ {amount:.2f}) no puede ser menor al saldo pendiente (S/ {remaining_amount:.2f}).', 'danger')
         return redirect(url_for('cashier.checkout', order_id=order_id))
-    
+
+    # Calcular vuelto para pagos en efectivo
+    change = max(0.0, round(amount - remaining_amount, 2))
+    # El pago registrado es lo que realmente cobra el negocio, no lo que entregó el cliente
+    collected_amount = remaining_amount if change > 0 else amount
+
     try:
         payment = Payment(
-            order_id=order.id, amount=amount, payment_method=payment_method,
+            order_id=order.id, amount=collected_amount, payment_method=payment_method,
             reference_code=reference_code, status='completed', created_by=current_user.id,
             cash_session_id=current_session.id
         )
@@ -276,17 +258,13 @@ def pay(order_id):
                     logger.error('Fallo generando número de comprobante: secuencia inexistente y parse fallido para prefix %s', prefix)
                     return redirect(url_for('cashier.checkout', order_id=order_id))
         doc_number = f"{prefix}-{next_num:06d}"
-        
-        total = float(amount)
-        # IGV 18% (Perú): El total ya incluye impuesto, se desglosa para el comprobante
-        tax_rate = 0.18
-        subtotal = round(total / (1 + tax_rate), 2)
-        tax_amount = round(total - subtotal, 2)
-        
+
+        total = float(collected_amount)
+
         invoice = Invoice(
             payment_id=payment.id, invoice_type=invoice_type, document_number=doc_number,
             customer_name=customer_name, customer_document=customer_document,
-            subtotal=subtotal, tax_amount=tax_amount, total_amount=total
+            subtotal=total, tax_amount=0, total_amount=total
         )
         db.session.add(invoice)
         
@@ -317,6 +295,8 @@ def pay(order_id):
         else:
             tipo = 'Delivery' if order.order_type == 'delivery' else 'Para Llevar'
             msg = f'¡Cobro exitoso! Se generó la {invoice_type.capitalize()} {doc_number} para la orden tipo {tipo}.'
+        if change > 0:
+            msg += f' Vuelto: S/ {change:.2f}'
         flash(msg, 'success')
         # UX: Redirigir al POS y abrir el ticket como ventana emergente automática
         return redirect(url_for('cashier.pos', popup_ticket=order.id, payment_id=payment.id))
@@ -399,8 +379,23 @@ def process_split_pay(order_id):
         flash('Los platos seleccionados ya fueron pagados o no existen.', 'danger')
         return redirect(url_for('cashier.split_pay', order_id=order_id))
 
-    amount = sum(float(item.subtotal) for item in selected_items)
-    
+    # Prorratear descuento, propina y delivery fee entre los items seleccionados
+    items_subtotal = sum(float(item.subtotal) for item in selected_items)
+    order_subtotal = sum(float(item.subtotal) for item in order.items if item.status != 'cancelled' and not item.is_paid)
+    discount_pct = float(order.discount_percent or 0)
+    tip_val = float(order.tip or 0)
+    delivery_fee_val = float(order.delivery_fee or 0)
+
+    if order_subtotal > 0:
+        items_share = items_subtotal / order_subtotal
+    else:
+        items_share = 1.0
+
+    discount_share = round(items_subtotal * discount_pct / 100, 2)
+    tip_share = round(tip_val * items_share, 2)
+    delivery_share = round(delivery_fee_val * items_share, 2)
+    amount = round(items_subtotal - discount_share + tip_share + delivery_share, 2)
+
     try:
         payment = Payment(
             order_id=order.id, amount=amount, payment_method=payment_method,
@@ -422,17 +417,16 @@ def process_split_pay(order_id):
                 try:
                     next_num = int(last_invoice.document_number.split('-')[1]) + 1
                 except (ValueError, IndexError):
-                    pass
+                    db.session.rollback()
+                    flash('Error crítico: No se pudo generar el número de comprobante. Contacta al administrador del sistema.', 'danger')
+                    logger.error('Fallo generando número de comprobante en split_pay: secuencia inexistente y parse fallido para prefix %s', prefix)
+                    return redirect(url_for('cashier.split_pay', order_id=order_id))
         doc_number = f"{prefix}-{next_num:06d}"
-        
-        tax_rate = 0.18
-        subtotal = round(amount / (1 + tax_rate), 2)
-        tax_amount = round(amount - subtotal, 2)
-        
+
         invoice = Invoice(
             payment_id=payment.id, invoice_type=invoice_type, document_number=doc_number,
             customer_name=customer_name, customer_document=customer_document,
-            subtotal=subtotal, tax_amount=tax_amount, total_amount=amount
+            subtotal=amount, tax_amount=0, total_amount=amount
         )
         db.session.add(invoice)
 
@@ -444,7 +438,17 @@ def process_split_pay(order_id):
 
         # Revisar si aún quedan platos sin pagar en toda la orden
         all_paid = all(item.is_paid or item.status == 'cancelled' for item in order.items)
-        
+
+        if all_paid:
+            # Verificar que no quede saldo pendiente por propina/delivery/descuento
+            all_payments = Payment.query.filter_by(order_id=order.id, status='completed').all()
+            total_paid = sum(float(p.amount) for p in all_payments)
+            full_subtotal = sum(float(it.subtotal) for it in order.items if it.status != 'cancelled')
+            full_discount = round(full_subtotal * float(order.discount_percent or 0) / 100, 2)
+            full_grand_total = round(full_subtotal - full_discount + float(order.tip or 0) + float(order.delivery_fee or 0), 2)
+            if total_paid < full_grand_total:
+                all_paid = False
+
         if all_paid:
             order.status = 'paid'
             table = Table.query.get(order.table_id)
