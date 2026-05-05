@@ -173,7 +173,7 @@ def create_app(config_class=Config):
         if bool(os.environ.get("VERCEL")):
             response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
         supabase_host = os.environ.get("SUPABASE_URL", "").replace("https://", "")
-        img_src = "'self' data: https://*.supabase.co"
+        img_src = "'self' data: https://*.supabase.co https://api.qrserver.com"
         if supabase_host:
             img_src += f" https://{supabase_host}"
         nonce = getattr(g, 'csp_nonce', '')

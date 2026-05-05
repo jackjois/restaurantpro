@@ -27,8 +27,8 @@
 <body class="bg-light">
 
     <nav class="navbar navbar-dark bg-dark d-md-none px-3 shadow-sm d-flex justify-content-between">
-        <a class="navbar-brand fw-bold d-flex align-items-center"
-            href="{% if current_user.role == 'admin' %}{{ url_for('dashboard.index') }}{% elif current_user.role == 'chef' %}{{ url_for('orders.kitchen') }}{% elif current_user.role == 'cashier' %}{{ url_for('cashier.pos') }}{% else %}{{ url_for('floor.index') }}{% endif %}">
+<a class="navbar-brand fw-bold d-flex align-items-center"
+   href="{% if current_user.is_authenticated and current_user.role == 'admin' %}{{ url_for('dashboard.index') }}{% elif current_user.is_authenticated and current_user.role == 'chef' %}{{ url_for('orders.kitchen') }}{% elif current_user.is_authenticated and current_user.role == 'cashier' %}{{ url_for('cashier.pos') }}{% else %}{{ url_for('floor.index') }}{% endif %}">
 
             {% if restaurant and restaurant.logo_url %}
             <img src="{{ restaurant.logo_url | resolve_url('') }}" alt="Logo"
@@ -105,7 +105,7 @@
                 </div>
 
                 <div class="offcanvas-body d-flex flex-column p-3 h-100">
-                    <a href="{% if current_user.role == 'admin' %}{{ url_for('dashboard.index') }}{% elif current_user.role == 'chef' %}{{ url_for('orders.kitchen') }}{% elif current_user.role == 'cashier' %}{{ url_for('cashier.pos') }}{% else %}{{ url_for('floor.index') }}{% endif %}"
+                    <a href="{% if current_user.is_authenticated and current_user.role == 'admin' %}{{ url_for('dashboard.index') }}{% elif current_user.is_authenticated and current_user.role == 'chef' %}{{ url_for('orders.kitchen') }}{% elif current_user.is_authenticated and current_user.role == 'cashier' %}{{ url_for('cashier.pos') }}{% else %}{{ url_for('floor.index') }}{% endif %}"
                         class="d-none d-md-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none">
 
                         {% if restaurant and restaurant.logo_url %}
@@ -122,12 +122,12 @@
 
                     <ul class="nav nav-pills flex-column mb-auto">
 
-                        {% if current_user.role == 'admin' %}
-                        <li class="nav-item">
-                            <a href="{{ url_for('dashboard.index') }}" class="sidebar-link">
-                                <i class="bi bi-speedometer2 me-2"></i> Panel
-                            </a>
-                        </li>
+{% if current_user.is_authenticated and current_user.role == 'admin' %}
+        <li class="nav-item">
+          <a href="{{ url_for('dashboard.index') }}" class="sidebar-link">
+            <i class="bi bi-speedometer2 me-2"></i> Panel
+          </a>
+        </li>
                         <li class="nav-item mt-1">
                             <a href="{{ url_for('products.index') }}" class="sidebar-link">
                                 <i class="bi bi-box-seam me-2"></i> Productos
@@ -140,7 +140,7 @@
                         </li>
                         {% endif %}
 
-                        {% if current_user.role in ['admin', 'cashier', 'waiter'] %}
+                        {% if current_user.is_authenticated and current_user.role in ['admin', 'cashier', 'waiter'] %}
                         <li class="nav-item mt-1">
                             <a href="{{ url_for('floor.index') }}" class="sidebar-link">
                                 <i class="bi bi-grid-3x3-gap-fill me-2"></i> Realizar Pedido
@@ -153,8 +153,8 @@
                             </a>
                             <div class="collapse" id="mesasMenu">
                                 <ul class="nav flex-column ms-3">
-                                    {% if current_user.role == 'admin' %}
-                                    <li><a href="{{ url_for('tables.index') }}" class="sidebar-link py-1"><i
+{% if current_user.is_authenticated and current_user.role == 'admin' %}
+            <li><a href="{{ url_for('tables.index') }}" class="sidebar-link py-1"><i
                                                 class="bi bi-list me-2"></i> Administrar</a></li>
                                     {% endif %}
                                     <li><a href="{{ url_for('tables.monitor') }}" class="sidebar-link py-1"><i
@@ -164,18 +164,18 @@
                         </li>
                         {% endif %}
 
-                        {% if current_user.role in ['admin', 'cashier'] %}
-                        <li class="nav-item mt-1">
-                            <a class="sidebar-link dropdown-toggle" href="#" data-bs-toggle="collapse"
-                                data-bs-target="#pedidosMenu">
+{% if current_user.is_authenticated and current_user.role in ['admin', 'cashier'] %}
+        <li class="nav-item mt-1">
+          <a class="sidebar-link dropdown-toggle" href="#" data-bs-toggle="collapse"
+            data-bs-target="#pedidosMenu">
                                 <i class="bi bi-receipt me-2"></i> Pedidos
                             </a>
                             <div class="collapse" id="pedidosMenu">
                                 <ul class="nav flex-column ms-3">
                                     <li><a href="{{ url_for('orders.index') }}" class="sidebar-link py-1"><i
                                                 class="bi bi-list me-2"></i> Historial</a></li>
-                                    {% if current_user.role == 'admin' %}
-                                    <li><a href="{{ url_for('orders.kitchen') }}"
+{% if current_user.is_authenticated and current_user.role == 'admin' %}
+            <li><a href="{{ url_for('orders.kitchen') }}"
                                             class="sidebar-link link-highlight-kitchen py-1"><i
                                                 class="bi bi-fire me-2"></i> Ver Cocina</a></li>
                                     {% endif %}
@@ -184,7 +184,7 @@
                         </li>
                         {% endif %}
 
-                        {% if current_user.role == 'chef' %}
+                        {% if current_user.is_authenticated and current_user.role == 'chef' %}
                         <li class="nav-item">
                             <a href="{{ url_for('orders.kitchen') }}" class="sidebar-link link-highlight-kitchen">
                                 <i class="bi bi-fire me-2"></i> Pantalla de Cocina
@@ -192,10 +192,10 @@
                         </li>
                         {% endif %}
 
-                        {% if current_user.role == 'admin' %}
-                        <li class="nav-item mb-1">
-                            <a class="nav-link text-white rounded px-3 py-2 opacity-75 {% if request.endpoint == 'reports.shifts' %}active bg-white bg-opacity-10 opacity-100 fw-bold{% else %}hover-bg-light{% endif %}"
-                                href="{{ url_for('reports.shifts') }}">
+{% if current_user.is_authenticated and current_user.role in ['admin', 'cashier'] %}
+        <li class="nav-item mb-1">
+          <a class="nav-link text-white rounded px-3 py-2 opacity-75 {% if request.endpoint == 'reports.shifts' %}active bg-white bg-opacity-10 opacity-100 fw-bold{% else %}hover-bg-light{% endif %}"
+            href="{{ url_for('reports.shifts') }}">
                                 <i class="bi bi-clock-history me-2"></i>Historial de Turnos
                             </a>
                         </li>
@@ -208,18 +208,18 @@
 
 
 
-                        {% if current_user.role in ['admin', 'cashier'] %}
-                        <li class="nav-item">
-                            <a href="{{ url_for('cashier.pos') }}" class="sidebar-link link-highlight-cashier">
+{% if current_user.is_authenticated and current_user.role in ['admin', 'cashier'] %}
+        <li class="nav-item">
+          <a href="{{ url_for('cashier.pos') }}" class="sidebar-link link-highlight-cashier">
                                 <i class="bi bi-cash-coin me-2"></i> Caja / Cobros
                             </a>
                         </li>
                         {% endif %}
 
-                        {% if current_user.role == 'admin' %}
-                        <li class="nav-item mt-3 border-top border-secondary pt-2">
-                            <a class="sidebar-link dropdown-toggle" href="#" data-bs-toggle="collapse"
-                                data-bs-target="#reportesMenu">
+{% if current_user.is_authenticated and current_user.role == 'admin' %}
+        <li class="nav-item mt-3 border-top border-secondary pt-2">
+          <a class="sidebar-link dropdown-toggle" href="#" data-bs-toggle="collapse"
+            data-bs-target="#reportesMenu">
                                 <i class="bi bi-bar-chart-line me-2"></i> Reportes
                             </a>
                             <div class="collapse" id="reportesMenu">
@@ -326,7 +326,7 @@
                     <h4 class="mb-0 text-dark fw-bold">{% block header_title %}Panel de Control{% endblock %}</h4>
                     <div>
                         <span class="badge bg-primary fs-6 px-3 py-2 shadow-sm"><i class="bi bi-person-badge me-1"></i>
-                            {{ current_user.role | capitalize }}</span>
+                            {{ current_user.role | capitalize if current_user.is_authenticated else '' }}</span>
                     </div>
                 </header>
 

@@ -393,7 +393,7 @@
             // ── Config ──
             const CSRF = "{{ csrf_token() }}";
             const API_BASE = "{{ url_for('floor.index') }}api";
-            const CASHIER_CHECKOUT_URL = "{{ url_for('cashier.pos') }}".replace('/cashier/', '/cashier/checkout/');
+            const CASHIER_CHECKOUT_BASE = "{{ url_for('cashier.checkout', order_id=0) }}".replace('/0', '');
             const SUPABASE_URL = "{{ supabase_url }}";
             const SUPABASE_KEY = "{{ supabase_key }}";
 
@@ -1007,7 +1007,7 @@
 
             document.getElementById('btnCheckout').addEventListener('click', () => {
                 if (!selectedOrder) return;
-                window.location.href = `${CASHIER_CHECKOUT_URL}${selectedOrder.id}`;
+                window.location.href = `${CASHIER_CHECKOUT_BASE}${selectedOrder.id}`;
             });
 
             document.getElementById('btnKOT').addEventListener('click', async () => {
@@ -1228,7 +1228,7 @@
                         closeModal('modalSplit');
                         toast('Cuenta separada. Abriendo cobro...', 'success');
                         fetchStatus();
-                        window.location.href = `${CASHIER_CHECKOUT_URL}${res.new_order_id}`;
+                        window.location.href = `${CASHIER_CHECKOUT_BASE}${res.new_order_id}`;
                     } else { toast(res.error, 'error'); }
                 } catch (e) { console.error(e); toast('Error de red', 'error'); }
             };

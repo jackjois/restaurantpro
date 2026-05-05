@@ -1,0 +1,301 @@
+{% extends 'layout.html' %}
+
+{% block title %}Ver Caja - RestaurantPro{% endblock %}
+{% block header_title %}Caja en Curso{% endblock %}
+
+{% block content %}
+<style>
+    .session-hero {
+        border-radius: 24px;
+        padding: 2.5rem 2rem;
+        color: white;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.08);
+        position: relative;
+        overflow: hidden;
+        background: linear-gradient(135deg, #4318ff 0%, #1b254b 100%);
+    }
+    .session-hero .bg-shape {
+        position: absolute;
+        right: -10%;
+        top: -50%;
+        width: 400px;
+        height: 400px;
+        background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0) 70%);
+        border-radius: 50%;
+    }
+    .summary-card {
+        background: #fff;
+        border-radius: 20px;
+        border: none;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.04);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border-top: 6px solid #4318ff;
+        padding: 1.5rem;
+        text-align: center;
+    }
+    .summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(67, 24, 255, 0.1);
+    }
+    .summary-card.card-cash { border-top-color: #05cd99; }
+    .summary-card.card-digital { border-top-color: #6c5ce7; }
+    .summary-card.card-expense { border-top-color: #ee5d50; }
+    .summary-card.card-expected { border-top-color: #ffb547; }
+    .summary-card .card-value {
+        font-size: 2rem;
+        font-weight: 800;
+        color: #1b254b;
+        letter-spacing: -1px;
+        margin: 0.5rem 0 0.25rem;
+    }
+    .summary-card .card-label {
+        font-size: 0.75rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #a3aed1;
+    }
+    .detail-table {
+        background: #fff;
+        border-radius: 20px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.04);
+        overflow: hidden;
+    }
+    .detail-table table {
+        margin-bottom: 0;
+    }
+    .detail-table thead th {
+        background: #f4f7fe;
+        border-bottom: 2px solid #e2e8f0;
+        font-size: 0.75rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #a3aed1;
+        padding: 1rem 1.25rem;
+    }
+    .detail-table tbody td {
+        padding: 0.85rem 1.25rem;
+        vertical-align: middle;
+        color: #1b254b;
+        font-weight: 600;
+        border-bottom: 1px solid #f4f7fe;
+    }
+    .method-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 8px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-transform: capitalize;
+    }
+    .method-cash { background: #e6f9f0; color: #05cd99; }
+    .method-card { background: #eef0ff; color: #4318ff; }
+    .method-yape { background: #fff3e0; color: #6c2d00; }
+    .method-plin { background: #e0f7fa; color: #00838f; }
+    .method-transfer { background: #f3e5f5; color: #7b1fa2; }
+    .empty-row td {
+        text-align: center;
+        color: #a3aed1;
+        font-style: italic;
+        padding: 2rem !important;
+    }
+</style>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="session-hero d-flex flex-column flex-md-row align-items-md-center justify-content-between">
+            <div class="bg-shape"></div>
+            <div style="z-index: 1;">
+                <h2 class="fw-bold mb-2 text-white" style="font-size: 2rem;">
+                    <i class="bi bi-wallet2 me-2"></i> Caja Operativa
+                </h2>
+                <p class="mb-1 fs-5 text-white opacity-75 fw-medium">
+                    <i class="bi bi-person-fill me-1"></i> Abierta por: <strong>{{ session.user.full_name if session.user.full_name else session.user.username }}</strong>
+                </p>
+                <p class="mb-0 fs-6 text-white opacity-50 fw-medium">
+                    <i class="bi bi-clock me-1"></i> Apertura: {{ session.opening_time|peru_time('%d/%m/%Y %H:%M %p') }} &nbsp;|&nbsp;
+                    <i class="bi bi-cash-coin me-1"></i> Fondo inicial: <strong>S/ {{ "%.2f"|format(session.opening_amount) }}</strong>
+                </p>
+            </div>
+            <div style="z-index: 1;" class="mt-4 mt-md-0 d-flex gap-2">
+                <a href="{{ url_for('cashier.pos') }}" class="btn btn-light btn-lg fw-bold px-4 shadow-sm" style="border-radius: 16px;">
+                    <i class="bi bi-arrow-left me-1"></i> Volver al POS
+                </a>
+                {% if current_user.role == 'admin' %}
+                <button type="button" class="btn btn-danger btn-lg fw-bold px-4 shadow-sm" style="border-radius: 16px;" data-bs-toggle="modal" data-bs-target="#closeSessionModal">
+                    <i class="bi bi-lock-fill me-1"></i> Cerrar Caja
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-5">
+    <div class="col-6 col-md-4 col-lg">
+        <div class="summary-card">
+            <div class="card-label">Ventas Totales</div>
+            <div class="card-value">S/ {{ "%.2f"|format(total_sales) }}</div>
+            <i class="bi bi-graph-up-arrow fs-4" style="color: #4318ff;"></i>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg">
+        <div class="summary-card card-cash">
+            <div class="card-label">Ventas Efectivo</div>
+            <div class="card-value">S/ {{ "%.2f"|format(cash_sales) }}</div>
+            <i class="bi bi-cash-stack fs-4" style="color: #05cd99;"></i>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg">
+        <div class="summary-card card-digital">
+            <div class="card-label">Ventas Digital</div>
+            <div class="card-value">S/ {{ "%.2f"|format(digital_sales) }}</div>
+            <i class="bi bi-phone fs-4" style="color: #6c5ce7;"></i>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg">
+        <div class="summary-card card-expense">
+            <div class="card-label">Egresos</div>
+            <div class="card-value">S/ {{ "%.2f"|format(total_expenses) }}</div>
+            <i class="bi bi-box-arrow-right fs-4" style="color: #ee5d50;"></i>
+        </div>
+    </div>
+    <div class="col-12 col-md-4 col-lg">
+        <div class="summary-card card-expected">
+            <div class="card-label">Saldo Esperado</div>
+            <div class="card-value">S/ {{ "%.2f"|format(expected_amount) }}</div>
+            <small class="text-muted fw-bold" style="font-size: 0.7rem;">Apertura + Efectivo &minus; Egresos</small>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-5">
+    <div class="col-lg-7">
+        <div class="detail-table">
+            <div class="p-4 pb-0">
+                <h5 class="fw-bold text-dark mb-0"><i class="bi bi-receipt me-2" style="color: #4318ff;"></i>Pagos Registrados <span class="badge bg-primary ms-2" style="font-size: 0.75rem;">{{ payments|length }}</span></h5>
+            </div>
+            <div class="p-4 pt-3">
+                <table class="table table-borderless table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Método</th>
+                            <th>Monto</th>
+                            <th>Referencia</th>
+                            <th>Hora</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% if payments %}
+                        {% for p in payments %}
+                        <tr>
+                            <td>
+                                <span class="method-badge method-{{ p.payment_method }}">
+                                    {% if p.payment_method == 'cash' %}Efectivo
+                                    {% elif p.payment_method == 'card' %}Tarjeta
+                                    {% elif p.payment_method == 'yape' %}Yape
+                                    {% elif p.payment_method == 'plin' %}Plin
+                                    {% elif p.payment_method == 'transfer' %}Transferencia
+                                    {% else %}{{ p.payment_method }}{% endif %}
+                                </span>
+                            </td>
+                            <td>S/ {{ "%.2f"|format(p.amount) }}</td>
+                            <td class="text-muted">{{ p.reference_code if p.reference_code else '—' }}</td>
+                            <td class="text-muted">{{ p.created_at|peru_time('%H:%M') }}</td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr class="empty-row"><td colspan="4">No hay pagos registrados en esta sesión.</td></tr>
+                    {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="detail-table">
+            <div class="p-4 pb-0">
+                <h5 class="fw-bold text-dark mb-0"><i class="bi bi-box-arrow-right me-2" style="color: #ee5d50;"></i>Egresos de Caja <span class="badge bg-danger ms-2" style="font-size: 0.75rem;">{{ expenses|length }}</span></h5>
+            </div>
+            <div class="p-4 pt-3">
+                <table class="table table-borderless table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Motivo</th>
+                            <th>Monto</th>
+                            <th>Usuario</th>
+                            <th>Hora</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% if expenses %}
+                        {% for e in expenses %}
+                        <tr>
+                            <td>{{ e.reason }}</td>
+                            <td class="text-danger fw-bold">S/ {{ "%.2f"|format(e.amount) }}</td>
+                            <td class="text-muted">{{ e.user.username if e.user else '—' }}</td>
+                            <td class="text-muted">{{ e.created_at|peru_time('%H:%M') }}</td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr class="empty-row"><td colspan="4">Sin egresos registrados.</td></tr>
+                    {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if current_user.role == 'admin' %}
+<div class="modal fade" id="closeSessionModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="modal-header border-0 pb-3 pt-4 px-4 bg-danger bg-opacity-10" style="border-radius: 20px 20px 0 0;">
+                <h5 class="modal-title fw-bold text-danger"><i class="bi bi-lock-fill me-2"></i>Cierre de Caja</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="alert alert-warning border-0 rounded-3 small fw-bold mb-3">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>Al cerrar la caja se emitirá el Ticket Z (resumen de ventas y egresos). Esta acción es irreversible.
+                </div>
+                <form action="{{ url_for('cashier.close_session') }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <div class="mb-3">
+                        <label class="form-label text-muted fw-bold small text-uppercase">Efectivo físico contado en caja (S/)</label>
+                        <input type="number" step="0.01" min="0" name="closing_amount" class="form-control form-control-lg bg-light border-0 fw-bold fs-3 text-dark" style="border-radius: 14px;" placeholder="{{ '%.2f'|format(expected_amount) }}">
+                        <small class="text-muted mt-1 d-block">Saldo esperado por sistema: <strong>S/ {{ "%.2f"|format(expected_amount) }}</strong></small>
+                    </div>
+                    <button type="submit" class="btn btn-danger fw-bold w-100 py-3 shadow-sm" style="border-radius: 12px;">
+                        <i class="bi bi-lock-fill me-1"></i> Cerrar caja definitivamente
+                    </button>
+                </form>
+            </div>
+            <div class="modal-footer border-0 px-4 py-3 bg-light justify-content-end" style="border-radius: 0 0 20px 20px;">
+                <button type="button" class="btn btn-light fw-bold px-4" data-bs-dismiss="modal" style="border-radius: 12px;">Cancelar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ csp_nonce }}">
+document.addEventListener('DOMContentLoaded', function() {
+    const params = new URLSearchParams(window.location.search);
+    const popupShift = params.get('popup_shift');
+    if (popupShift) {
+        window.open(
+            '{{ url_for("reports.shift_ticket", session_id=0) }}'.replace('/0', '/' + popupShift),
+            'ticket_z',
+            'width=800,height=700,scrollbars=yes,resizable=yes'
+        );
+        window.history.replaceState({}, '', window.location.pathname);
+    }
+});
+</script>
+{% endblock %}

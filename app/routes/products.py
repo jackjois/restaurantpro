@@ -53,15 +53,14 @@ def index():
     categories = Category.query.all()
     return render_template('products/list.html', products=products, categories=categories)
 
-@products_bp.route('/create', methods=['GET', 'POST'])
+@products_bp.route('/create', methods=['POST'])
 @login_required
 @role_required('admin')
 def create():
-    if request.method == 'POST':
-        name = request.form.get('name')
-        if not name or not name.strip():
-            flash('El nombre del producto es obligatorio.', 'danger')
-            return redirect(url_for('products.index'))
+    name = request.form.get('name')
+    if not name or not name.strip():
+        flash('El nombre del producto es obligatorio.', 'danger')
+        return redirect(url_for('products.index'))
         description = request.form.get('description')
         price = safe_float(request.form.get('price'), default=0.0)
         cost = safe_float(request.form.get('cost'), default=0.0)
@@ -117,34 +116,30 @@ def create():
             flash('Error al crear el producto. Intenta nuevamente.', 'danger')
             return redirect(url_for('products.index'))
         
-        flash('Producto agregado correctamente.', 'success')
-        return redirect(url_for('products.index'))
-
+    flash('Producto agregado correctamente.', 'success')
     return redirect(url_for('products.index'))
 
-@products_bp.route('/edit/<int:id>', methods=['GET', 'POST'])
+@products_bp.route('/edit/<int:id>', methods=['POST'])
 @login_required
 @role_required('admin')
 def edit(id):
     product = Product.query.get_or_404(id)
-    
-    if request.method == 'POST':
-        new_name = request.form.get('name')
-        if not new_name or not new_name.strip():
-            flash('El nombre del producto es obligatorio.', 'danger')
-            return redirect(url_for('products.edit', id=id))
-        product.name = new_name
-        product.description = request.form.get('description')
-        product.price = safe_float(request.form.get('price'), default=0.0)
-        product.cost = safe_float(request.form.get('cost'), default=0.0)
-        product.category_id = safe_int(request.form.get('category_id'), nullable=True)
-        product.preparation_time = safe_int(request.form.get('preparation_time'), default=0)
-        product.is_available = 'is_available' in request.form
-        product.track_stock = 'track_stock' in request.form
-        product.stock = safe_int(request.form.get('stock', 0), default=0)
-        
-        # Manejo de nueva imagen si se sube una
-        image_file = request.files.get('image')
+
+    new_name = request.form.get('name')
+    if not new_name or not new_name.strip():
+        flash('El nombre del producto es obligatorio.', 'danger')
+        return redirect(url_for('products.index'))
+    product.name = new_name
+    product.description = request.form.get('description')
+    product.price = safe_float(request.form.get('price'), default=0.0)
+    product.cost = safe_float(request.form.get('cost'), default=0.0)
+    product.category_id = safe_int(request.form.get('category_id'), nullable=True)
+    product.preparation_time = safe_int(request.form.get('preparation_time'), default=0)
+    product.is_available = 'is_available' in request.form
+    product.track_stock = 'track_stock' in request.form
+    product.stock = safe_int(request.form.get('stock', 0), default=0)
+
+    image_file = request.files.get('image')
     if image_file and image_file.filename != '' and allowed_file(image_file.filename):
         filename = secure_filename(image_file.filename)
         file_ext = filename.rsplit('.', 1)[1].lower()
@@ -153,10 +148,9 @@ def edit(id):
 
         if not validate_image_bytes(file_bytes, file_ext):
             flash('El archivo no es una imagen válida.', 'danger')
-            return redirect(url_for('products.index', id=id))
+            return redirect(url_for('products.index'))
 
         try:
-            # Limpiar imagen anterior del Storage para evitar archivos huérfanos
             if product.image_url and 'supabase' in product.image_url:
                 try:
                     old_file = product.image_url.split('/')[-1].split('?')[0]
@@ -172,17 +166,16 @@ def edit(id):
             public_url = get_supabase().storage.from_('restaurant_assets').get_public_url(new_filename)
             product.image_url = public_url
         except Exception as e:
-                logger.exception('Error subiendo imagen de producto')
-                flash('Error al subir la imagen. Intenta nuevamente.', 'danger')
-            
-        try:
-            db.session.commit()
-            flash('Producto actualizado correctamente.', 'success')
-        except Exception as e:
-            db.session.rollback()
-            logger.exception('Error actualizando producto %s', id)
-            flash('Error al actualizar el producto. Intenta nuevamente.', 'danger')
-        return redirect(url_for('products.index'))
+            logger.exception('Error subiendo imagen de producto')
+            flash('Error al subir la imagen. Intenta nuevamente.', 'danger')
+
+    try:
+        db.session.commit()
+        flash('Producto actualizado correctamente.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        logger.exception('Error actualizando producto %s', id)
+        flash('Error al actualizar el producto. Intenta nuevamente.', 'danger')
 
     return redirect(url_for('products.index'))
 

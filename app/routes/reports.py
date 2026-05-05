@@ -199,7 +199,7 @@ def products():
 
 @reports_bp.route('/shifts')
 @login_required
-@role_required('admin')
+@role_required('admin', 'cashier')
 def shifts():
     from app.models.cash_register import CashSession
     page = request.args.get('page', 1, type=int)
@@ -208,6 +208,7 @@ def shifts():
 
 @reports_bp.route('/shift_ticket/<int:session_id>')
 @login_required
+@role_required('admin', 'cashier')
 def shift_ticket(session_id):
     from app.models.cash_register import CashSession
     from app.models.cash_expense import CashExpense

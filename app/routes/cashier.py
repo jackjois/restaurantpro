@@ -4,7 +4,7 @@ from app.utils.decorators import role_required
 from app.models.order import Order
 from app.models.table import Table
 from app.models.payment import Payment, Invoice
-from app.models.notification import Notification 
+from app.models.notification import Notification
 from app.models.cash_register import CashSession
 from app.models.cash_expense import CashExpense
 from app.models.audit_log import AuditLog
@@ -66,6 +66,35 @@ def open_session():
 
     return redirect(url_for('cashier.pos'))
 
+@cashier_bp.route('/session')
+@login_required
+@role_required('admin', 'cashier')
+def view_session():
+    current_session = CashSession.query.filter_by(status='open').first()
+    if not current_session:
+        flash('No hay ninguna caja abierta actualmente.', 'warning')
+        return redirect(url_for('cashier.pos'))
+
+    payments = Payment.query.filter_by(cash_session_id=current_session.id, status='completed').all()
+    expenses = CashExpense.query.filter_by(cash_session_id=current_session.id).all()
+
+    total_sales = sum(float(p.amount) for p in payments)
+    cash_sales = sum(float(p.amount) for p in payments if p.payment_method == 'cash')
+    digital_sales = total_sales - cash_sales
+    total_expenses = sum(float(e.amount) for e in expenses)
+    expected_amount = round(float(current_session.opening_amount) + cash_sales - total_expenses, 2)
+
+    return render_template('cashier/session.html',
+        session=current_session,
+        payments=payments,
+        expenses=expenses,
+        total_sales=total_sales,
+        cash_sales=cash_sales,
+        digital_sales=digital_sales,
+        total_expenses=total_expenses,
+        expected_amount=expected_amount,
+    )
+
 @cashier_bp.route('/close_session', methods=['POST'])
 @login_required
 @role_required('admin')
@@ -90,24 +119,24 @@ def close_session():
     total_sales = sum(float(p.amount) for p in payments)
     cash_sales = sum(float(p.amount) for p in payments if p.payment_method == 'cash')
     total_expenses = sum(float(e.amount) for e in expenses)
-    expected_amount = float(current_session.opening_amount) + cash_sales - total_expenses
+    expected_amount = round(float(current_session.opening_amount) + cash_sales - total_expenses, 2)
+
+    closing_amount = safe_float(request.form.get('closing_amount'), default=expected_amount)
 
     current_session.closing_time = datetime.now(timezone.utc)
-    current_session.closing_amount = expected_amount
+    current_session.closing_amount = closing_amount
     current_session.expected_amount = expected_amount
     current_session.status = 'closed'
 
     AuditLog.log(
-        'CLOSE_SESSION',
-        'cash_sessions',
-        current_session.id,
-        f"Caja cerrada (AUTO). Monto Esperado: S/ {expected_amount}, Ingresado: S/ {expected_amount}",
+        'CLOSE_SESSION', 'cash_sessions', current_session.id,
+        f"Caja cerrada. Monto Esperado: S/ {expected_amount}, Ingresado: S/ {closing_amount}",
         current_user.id
     )
     db.session.commit()
 
     flash(
-        f'Caja cerrada automáticamente. Ventas puras: S/ {total_sales} | Egresos: S/ {total_expenses}. Tu Ticket Z se abrirá en instantes.',
+        f'Caja cerrada. Ventas: S/ {total_sales} | Egresos: S/ {total_expenses} | Esperado: S/ {expected_amount} | Ingresado: S/ {closing_amount}. Tu Ticket Z se abrirá en instantes.',
         'success'
     )
     return redirect(url_for('cashier.pos', popup_shift=current_session.id))

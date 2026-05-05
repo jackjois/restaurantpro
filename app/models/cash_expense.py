@@ -9,3 +9,5 @@ class CashExpense(db.Model):
     amount = db.Column(db.Numeric(10, 2), nullable=False)
     reason = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    user = db.relationship('User', backref='cash_expenses', lazy=True)
