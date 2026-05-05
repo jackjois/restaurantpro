@@ -10,7 +10,7 @@ is_production = bool(os.environ.get("VERCEL"))
 
 ssl_ctx = ssl.create_default_context(cafile=certifi.where())
 ssl_ctx.check_hostname = False
-ssl_ctx.verify_mode = ssl.CERT_REQUIRED
+ssl_ctx.verify_mode = ssl.CERT_NONE
 
 _db_url = os.environ.get('DATABASE_URL') or os.environ.get('SUPABASE_DATABASE_URL')
 if not _db_url:
